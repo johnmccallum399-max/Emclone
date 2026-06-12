@@ -1,0 +1,10 @@
+process.env.NODE_ENV = "test";
+process.env.JWT_SECRET = "test-secret-test-secret-test-secret";
+process.env.JWT_EXPIRES_IN = "1h";
+process.env.OPENAI_API_KEY = "test-key";
+process.env.SQLITE_PATH = ":memory:";
+process.env.APP_USERNAME = "testuser";
+process.env.APP_PASSWORD = "testpass";
+process.env.CORS_ORIGIN = "http://localhost:5173";
+process.env.LOG_LEVEL = "silent";
+process.env.RATE_LIMIT_MAX = "1000";
