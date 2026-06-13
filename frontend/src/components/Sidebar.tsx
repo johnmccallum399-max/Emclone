@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createConversation, deleteConversation, listConversations } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import type { Conversation } from "../types";
@@ -25,7 +25,11 @@ export function Sidebar({ activeId, onSelect, onOpenSettings }: SidebarProps) {
     }
   }
 
+  const initialized = useRef(false);
+
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
     refresh().then((list) => {
       if (list && list.length > 0 && activeId == null) {
         onSelect(list[0].id);
