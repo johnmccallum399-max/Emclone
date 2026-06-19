@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: ai-assistant-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: node dist/index.js
+    healthCheckPath: /api/health
+    plan: free
+    envVars:
+      # Auto-generated secrets — Render fills these in, no action needed
+      - key: JWT_SECRET
+        generateValue: true
+
+      # Set these in the Render dashboard (Environment tab) after creating the service
+      - key: APP_PASSWORD
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      # Set to your deployed frontend URL, e.g. https://your-app.vercel.app
+      - key: CORS_ORIGIN
+        sync: false
+
+      # Defaults — override in the dashboard if needed
+      - key: NODE_ENV
+        value: production
+      - key: APP_USERNAME
+        value: admin
+      - key: JWT_EXPIRES_IN
+        value: 12h
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_TTS_MODEL
+        value: tts-1
+      - key: OPENAI_TTS_VOICE
+        value: alloy
+      - key: OPENAI_STT_MODEL
+        value: whisper-1
+      - key: OPENAI_REALTIME_MODEL
+        value: gpt-4o-mini-realtime-preview
+      - key: SQLITE_PATH
+        value: /tmp/app.db
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 60000
+      - key: RATE_LIMIT_MAX
+        value: 60
+      - key: LOG_LEVEL
+        value: info
