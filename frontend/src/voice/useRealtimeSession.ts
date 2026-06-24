@@ -75,8 +75,12 @@ export function useRealtimeSession() {
 
     try {
       const session = await createRealtimeSession();
-      const ephemeralKey: string | undefined = session?.client_secret?.value;
-      const model: string | undefined = session?.model;
+      // The /v1/realtime/client_secrets response nests the configured session
+      // under `session` and puts the token at the top level (`value`); the
+      // older /v1/realtime/sessions shape nested it under `client_secret`.
+      // Accept either so an OpenAI-side API change doesn't silently break this.
+      const ephemeralKey: string | undefined = session?.value ?? session?.client_secret?.value;
+      const model: string | undefined = session?.session?.model ?? session?.model;
       if (!ephemeralKey || !model) {
         throw new Error("Realtime session response did not include a client secret/model.");
       }

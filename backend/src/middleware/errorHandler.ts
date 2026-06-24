@@ -15,7 +15,8 @@ export function notFoundHandler(req: Request, res: Response): void {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction): void {
-  const status = err instanceof HttpError ? err.status : 500;
+  const isHttpError = err instanceof HttpError;
+  const status = isHttpError ? err.status : 500;
   const message = err instanceof Error ? err.message : "Internal server error";
 
   if (status >= 500) {
@@ -24,5 +25,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     logger.warn({ err: message, path: req.path }, "Request error");
   }
 
-  res.status(status).json({ error: status >= 500 ? "Internal server error" : message });
+  // HttpError messages are always deliberately thrown by our own code and
+  // safe to expose; only mask messages from truly unexpected exceptions.
+  res.status(status).json({ error: isHttpError ? message : status >= 500 ? "Internal server error" : message });
 }

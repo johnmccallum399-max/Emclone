@@ -50,7 +50,7 @@ services:
       - key: OPENAI_STT_MODEL
         value: whisper-1
       - key: OPENAI_REALTIME_MODEL
-        value: gpt-4o-mini-realtime-preview
+        value: gpt-realtime
       - key: SQLITE_PATH
         value: /tmp/app.db
       - key: RATE_LIMIT_WINDOW_MS

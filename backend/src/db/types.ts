@@ -72,6 +72,7 @@ export interface DatabaseAdapter {
   listConversations(userId: number): Promise<Conversation[]>;
   getConversation(id: number, userId: number): Promise<Conversation | null>;
   touchConversation(id: number): Promise<void>;
+  renameConversation(id: number, userId: number, title: string): Promise<Conversation | null>;
   deleteConversation(id: number, userId: number): Promise<void>;
 
   // Messages

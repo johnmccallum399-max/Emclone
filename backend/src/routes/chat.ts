@@ -44,6 +44,21 @@ chatRouter.get(
   })
 );
 
+const renameConversationSchema = z.object({ title: z.string().min(1).max(200) });
+
+chatRouter.patch(
+  "/conversations/:id",
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    const parsed = renameConversationSchema.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, "A non-empty 'title' string (max 200 chars) is required");
+
+    const conversation = await getDb().renameConversation(id, req.userId!, parsed.data.title);
+    if (!conversation) throw new HttpError(404, "Conversation not found");
+    res.json({ conversation });
+  })
+);
+
 chatRouter.delete(
   "/conversations/:id",
   asyncHandler(async (req, res) => {

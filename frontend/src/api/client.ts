@@ -83,6 +83,14 @@ export async function createConversation(title?: string): Promise<Conversation> 
   return data.conversation;
 }
 
+export async function renameConversation(id: number, title: string): Promise<Conversation> {
+  const data = await apiJson<{ conversation: Conversation }>(`/api/chat/conversations/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
+  return data.conversation;
+}
+
 export async function deleteConversation(id: number): Promise<void> {
   await apiFetch(`/api/chat/conversations/${id}`, { method: "DELETE" });
 }
