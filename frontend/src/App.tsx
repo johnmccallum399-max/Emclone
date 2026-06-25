@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { ChatWindow } from "./components/ChatWindow";
 import { LoginScreen } from "./components/LoginScreen";
 import { SettingsPanel } from "./components/SettingsPanel";
@@ -45,6 +46,7 @@ export function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <SpeedInsights />
     </AuthProvider>
   );
 }
