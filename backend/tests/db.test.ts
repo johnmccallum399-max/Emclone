@@ -36,6 +36,10 @@ describe("SqliteAdapter", () => {
     const list = await db.listConversations(user.id);
     expect(list).toHaveLength(1);
 
+    const renamed = await db.renameConversation(convo.id, user.id, "Trip planning");
+    expect(renamed?.title).toBe("Trip planning");
+    expect(await db.renameConversation(convo.id, 9999, "Nope")).toBeNull();
+
     await db.deleteConversation(convo.id, user.id);
     expect(await db.listConversations(user.id)).toHaveLength(0);
   });

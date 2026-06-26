@@ -274,11 +274,27 @@ button.link-button:hover {
   white-space: nowrap;
 }
 
+.conversation-title-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  padding: 0.1rem 0.3rem;
+}
+
+.conversation-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.conversation-rename,
 .conversation-delete {
   opacity: 0;
   flex-shrink: 0;
 }
 
+.conversation-item:hover .conversation-rename,
 .conversation-item:hover .conversation-delete {
   opacity: 1;
 }

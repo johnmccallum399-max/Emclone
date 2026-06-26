@@ -156,7 +156,11 @@ documented list. Highlights:
 ### Backend (Render / Railway / Fly.io / any Docker host)
 
 1. Provision a PostgreSQL database and copy its connection string into
-   `DATABASE_URL` (the app auto-creates its schema on boot).
+   `DATABASE_URL` (the app auto-creates its schema on boot). If deploying to
+   Render via the included `render.yaml` blueprint, this is already wired up
+   for you — skip this step. Render's free web instances have an ephemeral
+   filesystem, so leaving `DATABASE_URL` unset and relying on the default
+   SQLite path will lose all data on every restart/redeploy.
 2. Deploy `backend/` using its `Dockerfile`, or run `npm run build && npm start`
    on a Node 20+ host.
 3. Set all required env vars from `backend/.env.example` (especially

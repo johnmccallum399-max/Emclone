@@ -139,6 +139,14 @@ export class PostgresAdapter implements DatabaseAdapter {
     await this.pool.query("UPDATE conversations SET updated_at = now() WHERE id = $1", [id]);
   }
 
+  async renameConversation(id: number, userId: number, title: string): Promise<Conversation | null> {
+    const result = await this.pool.query(
+      "UPDATE conversations SET title = $1 WHERE id = $2 AND user_id = $3 RETURNING *",
+      [title, id, userId]
+    );
+    return result.rows[0] ? this.mapConversation(result.rows[0]) : null;
+  }
+
   async deleteConversation(id: number, userId: number): Promise<void> {
     await this.pool.query("DELETE FROM conversations WHERE id = $1 AND user_id = $2", [id, userId]);
   }

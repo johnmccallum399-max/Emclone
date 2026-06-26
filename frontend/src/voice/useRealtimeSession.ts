@@ -75,7 +75,7 @@ export function useRealtimeSession() {
 
     try {
       const session = await createRealtimeSession();
-      const ephemeralKey: string | undefined = session?.client_secret?.value;
+      const ephemeralKey: string | undefined = session?.clientSecret;
       const model: string | undefined = session?.model;
       if (!ephemeralKey || !model) {
         throw new Error("Realtime session response did not include a client secret/model.");

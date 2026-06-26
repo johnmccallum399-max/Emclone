@@ -16,7 +16,7 @@ const envSchema = z.object({
   OPENAI_TTS_MODEL: z.string().default("tts-1"),
   OPENAI_TTS_VOICE: z.string().default("alloy"),
   OPENAI_STT_MODEL: z.string().default("whisper-1"),
-  OPENAI_REALTIME_MODEL: z.string().default("gpt-4o-mini-realtime-preview"),
+  OPENAI_REALTIME_MODEL: z.string().default("gpt-realtime"),
 
   DATABASE_URL: z.string().optional(),
   SQLITE_PATH: z.string().default("./data/app.db"),

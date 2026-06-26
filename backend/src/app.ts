@@ -16,11 +16,16 @@ export function createApp(): Express {
   const app = express();
 
   const allowedOrigins = env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
+  // A literal "*" entry in the cors `origin` array only matches a request
+  // with an `Origin: *` header, which browsers never send — so it would
+  // silently block every cross-origin request instead of allowing them.
+  // Use `true` (reflect request origin) to make "*" behave as a real wildcard.
+  const corsOrigin = allowedOrigins.includes("*") ? true : allowedOrigins;
 
   app.use(helmet());
   app.use(
     cors({
-      origin: allowedOrigins,
+      origin: corsOrigin,
       credentials: true,
     })
   );
