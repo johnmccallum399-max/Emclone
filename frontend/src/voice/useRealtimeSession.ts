@@ -76,9 +76,8 @@ export function useRealtimeSession() {
     try {
       const session = await createRealtimeSession();
       const ephemeralKey: string | undefined = session?.clientSecret;
-      const model: string | undefined = session?.model;
-      if (!ephemeralKey || !model) {
-        throw new Error("Realtime session response did not include a client secret/model.");
+      if (!ephemeralKey) {
+        throw new Error("Realtime session response did not include a client secret.");
       }
 
       const pc = new RTCPeerConnection();
@@ -108,7 +107,10 @@ export function useRealtimeSession() {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const sdpResponse = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`, {
+      // GA SDP-exchange endpoint: the model is already bound to the ephemeral
+      // key from /v1/realtime/client_secrets, so it's not passed here. The
+      // older /v1/realtime?model=... Beta shape was retired and now 400s.
+      const sdpResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
         method: "POST",
         body: offer.sdp,
         headers: {
