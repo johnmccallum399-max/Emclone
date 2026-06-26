@@ -1,3 +1,9 @@
+databases:
+  - name: ai-assistant-db
+    plan: free
+    databaseName: ai_assistant
+    user: ai_assistant
+
 services:
   - type: web
     name: ai-assistant-backend
@@ -11,6 +17,13 @@ services:
       # Auto-generated secrets — Render fills these in, no action needed
       - key: JWT_SECRET
         generateValue: true
+      # Persistent Postgres storage — Render's free web instances have an
+      # ephemeral filesystem, so SQLite at SQLITE_PATH would be wiped on
+      # every restart/redeploy. DATABASE_URL takes priority over SQLITE_PATH.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-assistant-db
+          property: connectionString
 
       # Set these in the Render dashboard (Environment tab) after creating the service
       - key: APP_PASSWORD
@@ -37,7 +50,7 @@ services:
       - key: OPENAI_STT_MODEL
         value: whisper-1
       - key: OPENAI_REALTIME_MODEL
-        value: gpt-4o-mini-realtime-preview
+        value: gpt-realtime
       - key: SQLITE_PATH
         value: /tmp/app.db
       - key: RATE_LIMIT_WINDOW_MS

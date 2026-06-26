@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createConversation, deleteConversation, listConversations } from "../api/client";
+import { createConversation, deleteConversation, listConversations, renameConversation } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import type { Conversation } from "../types";
 
@@ -13,6 +13,8 @@ export function Sidebar({ activeId, onSelect, onOpenSettings }: SidebarProps) {
   const { user, logout } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
 
   async function refresh() {
     setLoading(true);
@@ -46,6 +48,27 @@ export function Sidebar({ activeId, onSelect, onOpenSettings }: SidebarProps) {
     onSelect(conversation.id);
   }
 
+  function startRename(conversation: Conversation) {
+    setEditingId(conversation.id);
+    setEditingTitle(conversation.title);
+  }
+
+  async function commitRename(id: number) {
+    const title = editingTitle.trim();
+    setEditingId(null);
+    if (!title) return;
+
+    const original = conversations.find((c) => c.id === id);
+    if (!original || original.title === title) return;
+
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
+    try {
+      await renameConversation(id, title);
+    } catch {
+      setConversations((prev) => prev.map((c) => (c.id === id ? original : c)));
+    }
+  }
+
   async function handleDelete(id: number) {
     await deleteConversation(id);
     const remaining = conversations.filter((c) => c.id !== id);
@@ -72,19 +95,51 @@ export function Sidebar({ activeId, onSelect, onOpenSettings }: SidebarProps) {
             key={conversation.id}
             className={`conversation-item ${conversation.id === activeId ? "active" : ""}`}
             onClick={() => onSelect(conversation.id)}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              startRename(conversation);
+            }}
           >
-            <span className="conversation-title">{conversation.title}</span>
-            <button
-              type="button"
-              className="icon-button conversation-delete"
-              onClick={(e) => {
-                e.stopPropagation();
-                void handleDelete(conversation.id);
-              }}
-              title="Delete conversation"
-            >
-              ×
-            </button>
+            {editingId === conversation.id ? (
+              <input
+                autoFocus
+                className="conversation-title-input"
+                value={editingTitle}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => setEditingTitle(e.target.value)}
+                onBlur={() => void commitRename(conversation.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void commitRename(conversation.id);
+                  else if (e.key === "Escape") setEditingId(null);
+                }}
+              />
+            ) : (
+              <span className="conversation-title">{conversation.title}</span>
+            )}
+            <div className="conversation-actions">
+              <button
+                type="button"
+                className="icon-button conversation-rename"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startRename(conversation);
+                }}
+                title="Rename conversation"
+              >
+                ✎
+              </button>
+              <button
+                type="button"
+                className="icon-button conversation-delete"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void handleDelete(conversation.id);
+                }}
+                title="Delete conversation"
+              >
+                ×
+              </button>
+            </div>
           </div>
         ))}
       </div>

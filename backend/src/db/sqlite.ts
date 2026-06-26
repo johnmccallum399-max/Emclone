@@ -146,6 +146,13 @@ export class SqliteAdapter implements DatabaseAdapter {
     this.db.prepare("UPDATE conversations SET updated_at = datetime('now') WHERE id = ?").run(id);
   }
 
+  async renameConversation(id: number, userId: number, title: string): Promise<Conversation | null> {
+    this.db
+      .prepare("UPDATE conversations SET title = ? WHERE id = ? AND user_id = ?")
+      .run(title, id, userId);
+    return this.getConversation(id, userId);
+  }
+
   async deleteConversation(id: number, userId: number): Promise<void> {
     this.db.prepare("DELETE FROM conversations WHERE id = ? AND user_id = ?").run(id, userId);
   }

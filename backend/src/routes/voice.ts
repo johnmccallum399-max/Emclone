@@ -26,8 +26,12 @@ voiceRouter.post(
   "/realtime-session",
   asyncHandler(async (req, res) => {
     const { persona } = await getDb().getSettings(req.userId!);
-    const session = await createRealtimeSession(persona.systemPrompt);
-    res.json(session);
+    try {
+      const session = await createRealtimeSession(persona.systemPrompt);
+      res.json(session);
+    } catch (err) {
+      throw new HttpError(502, (err as Error).message);
+    }
   })
 );
 
