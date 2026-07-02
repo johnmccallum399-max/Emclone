@@ -2,6 +2,12 @@ import type {
   ChatMessage,
   ChatStreamEvent,
   Conversation,
+  HubAgent,
+  HubAgentInput,
+  HubMessage,
+  HubRunEvent,
+  HubSession,
+  HubSessionMode,
   MemoryEntry,
   PersonaConfig,
   SettingsResponse,
@@ -100,22 +106,8 @@ export async function getMessages(conversationId: number): Promise<ChatMessage[]
   return data.messages;
 }
 
-/**
- * Sends a message and streams the assistant's reply. Uses fetch + a
- * ReadableStream (not EventSource) so the Authorization header can be sent.
- */
-export async function streamChat(
-  conversationId: number,
-  message: string,
-  onEvent: (event: ChatStreamEvent) => void,
-  signal?: AbortSignal
-): Promise<void> {
-  const response = await apiFetch(`/api/chat/conversations/${conversationId}/messages`, {
-    method: "POST",
-    body: JSON.stringify({ message }),
-    signal,
-  });
-
+/** Reads `data: {...}` SSE frames from a fetch response body. */
+async function consumeEventStream<T>(response: Response, onEvent: (event: T) => void): Promise<void> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error("Streaming is not supported by this browser.");
 
@@ -136,12 +128,30 @@ export async function streamChat(
       const json = line.slice("data:".length).trim();
       if (!json) continue;
       try {
-        onEvent(JSON.parse(json) as ChatStreamEvent);
+        onEvent(JSON.parse(json) as T);
       } catch {
         // ignore malformed frames
       }
     }
   }
+}
+
+/**
+ * Sends a message and streams the assistant's reply. Uses fetch + a
+ * ReadableStream (not EventSource) so the Authorization header can be sent.
+ */
+export async function streamChat(
+  conversationId: number,
+  message: string,
+  onEvent: (event: ChatStreamEvent) => void,
+  signal?: AbortSignal
+): Promise<void> {
+  const response = await apiFetch(`/api/chat/conversations/${conversationId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ message }),
+    signal,
+  });
+  await consumeEventStream(response, onEvent);
 }
 
 // ---- Memory -------------------------------------------------------------
@@ -178,6 +188,90 @@ export async function setToolEnabled(name: string, enabled: boolean): Promise<vo
 
 export async function setVoiceMode(mode: VoiceMode): Promise<void> {
   await apiFetch("/api/settings/voice", { method: "PUT", body: JSON.stringify({ mode }) });
+}
+
+// ---- Orchestration hub ------------------------------------------------------
+
+export async function listHubAgents(): Promise<HubAgent[]> {
+  const data = await apiJson<{ agents: HubAgent[] }>("/api/hub/agents");
+  return data.agents;
+}
+
+export async function createHubAgent(input: HubAgentInput): Promise<HubAgent> {
+  const data = await apiJson<{ agent: HubAgent }>("/api/hub/agents", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return data.agent;
+}
+
+export async function updateHubAgent(id: number, patch: Partial<HubAgentInput>): Promise<HubAgent> {
+  const data = await apiJson<{ agent: HubAgent }>(`/api/hub/agents/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+  return data.agent;
+}
+
+export async function deleteHubAgent(id: number): Promise<void> {
+  await apiFetch(`/api/hub/agents/${id}`, { method: "DELETE" });
+}
+
+export interface HubSessionCreateInput {
+  title?: string;
+  goal: string;
+  mode: HubSessionMode;
+  maxRounds: number;
+  synthesize: boolean;
+  agentIds: number[];
+}
+
+export async function listHubSessions(): Promise<HubSession[]> {
+  const data = await apiJson<{ sessions: HubSession[] }>("/api/hub/sessions");
+  return data.sessions;
+}
+
+export async function createHubSession(input: HubSessionCreateInput): Promise<HubSession> {
+  const data = await apiJson<{ session: HubSession }>("/api/hub/sessions", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return data.session;
+}
+
+export async function getHubSession(
+  id: number
+): Promise<{ session: HubSession; messages: HubMessage[]; agents: HubAgent[] }> {
+  return apiJson(`/api/hub/sessions/${id}`);
+}
+
+export async function deleteHubSession(id: number): Promise<void> {
+  await apiFetch(`/api/hub/sessions/${id}`, { method: "DELETE" });
+}
+
+export async function interjectHubMessage(sessionId: number, content: string): Promise<HubMessage> {
+  const data = await apiJson<{ message: HubMessage }>(`/api/hub/sessions/${sessionId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+  return data.message;
+}
+
+/** Runs the session's agent rounds, streaming orchestration events. */
+export async function streamHubRun(
+  sessionId: number,
+  onEvent: (event: HubRunEvent) => void,
+  signal?: AbortSignal
+): Promise<void> {
+  const response = await apiFetch(`/api/hub/sessions/${sessionId}/run`, {
+    method: "POST",
+    signal,
+  });
+  await consumeEventStream(response, onEvent);
+}
+
+export async function stopHubSession(sessionId: number): Promise<void> {
+  await apiFetch(`/api/hub/sessions/${sessionId}/stop`, { method: "POST" });
 }
 
 // ---- Voice ----------------------------------------------------------------

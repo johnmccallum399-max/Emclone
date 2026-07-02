@@ -52,6 +52,99 @@ export interface NewMessageInput {
   name?: string | null;
 }
 
+// ---- Orchestration hub -----------------------------------------------------
+
+/**
+ * Where an agent's completions come from. `openai_compatible` covers any
+ * service exposing the OpenAI chat-completions API shape (Grok/xAI, Mistral,
+ * Groq, OpenRouter, DeepSeek, Ollama, ...) via a custom base URL.
+ */
+export type HubProvider = "openai" | "anthropic" | "google" | "openai_compatible";
+
+export interface HubAgent {
+  id: number;
+  userId: number;
+  name: string;
+  provider: HubProvider;
+  model: string;
+  /** Sealed (AES-256-GCM) API key — decrypt with utils/secretBox before use. */
+  apiKeySealed: string;
+  baseUrl: string | null;
+  systemPrompt: string;
+  createdAt: string;
+}
+
+export interface NewHubAgentInput {
+  userId: number;
+  name: string;
+  provider: HubProvider;
+  model: string;
+  apiKeySealed: string;
+  baseUrl?: string | null;
+  systemPrompt?: string;
+}
+
+export interface HubAgentPatch {
+  name?: string;
+  provider?: HubProvider;
+  model?: string;
+  apiKeySealed?: string;
+  baseUrl?: string | null;
+  systemPrompt?: string;
+}
+
+export type HubSessionMode = "discussion" | "debate" | "pipeline";
+export type HubSessionStatus = "idle" | "running" | "completed" | "stopped" | "error";
+
+export interface HubSession {
+  id: number;
+  userId: number;
+  title: string;
+  goal: string;
+  mode: HubSessionMode;
+  maxRounds: number;
+  synthesize: boolean;
+  status: HubSessionStatus;
+  /** Participating agent ids, in speaking order. */
+  agentIds: number[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewHubSessionInput {
+  userId: number;
+  title: string;
+  goal: string;
+  mode: HubSessionMode;
+  maxRounds: number;
+  synthesize: boolean;
+  agentIds: number[];
+}
+
+export type HubMessageRole = "agent" | "user" | "system" | "synthesis";
+
+export interface HubMessageRecord {
+  id: number;
+  sessionId: number;
+  /** Null for user/system messages, or when the authoring agent was deleted. */
+  agentId: number | null;
+  /** Display-name snapshot so transcripts survive agent renames/deletes. */
+  authorName: string;
+  role: HubMessageRole;
+  content: string;
+  round: number;
+  createdAt: string;
+}
+
+export interface NewHubMessageInput {
+  sessionId: number;
+  agentId?: number | null;
+  authorName: string;
+  role: HubMessageRole;
+  content: string;
+  round?: number;
+}
+
 /**
  * Storage-agnostic interface implemented by both the SQLite and PostgreSQL
  * adapters. Keeping this surface small makes it straightforward to add new
@@ -90,4 +183,22 @@ export interface DatabaseAdapter {
   setPersona(userId: number, persona: PersonaConfig): Promise<void>;
   setToolPermission(userId: number, tool: string, enabled: boolean): Promise<void>;
   setVoiceMode(userId: number, mode: string): Promise<void>;
+
+  // Orchestration hub: agents
+  createHubAgent(input: NewHubAgentInput): Promise<HubAgent>;
+  listHubAgents(userId: number): Promise<HubAgent[]>;
+  getHubAgent(id: number, userId: number): Promise<HubAgent | null>;
+  updateHubAgent(id: number, userId: number, patch: HubAgentPatch): Promise<HubAgent | null>;
+  deleteHubAgent(id: number, userId: number): Promise<void>;
+
+  // Orchestration hub: sessions
+  createHubSession(input: NewHubSessionInput): Promise<HubSession>;
+  listHubSessions(userId: number): Promise<HubSession[]>;
+  getHubSession(id: number, userId: number): Promise<HubSession | null>;
+  setHubSessionStatus(id: number, status: HubSessionStatus): Promise<void>;
+  deleteHubSession(id: number, userId: number): Promise<void>;
+
+  // Orchestration hub: messages
+  addHubMessage(input: NewHubMessageInput): Promise<HubMessageRecord>;
+  getHubMessages(sessionId: number, limit?: number): Promise<HubMessageRecord[]>;
 }
