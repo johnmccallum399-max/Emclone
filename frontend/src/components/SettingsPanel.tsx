@@ -9,6 +9,7 @@ interface SettingsPanelProps {
 
 const VOICE_MODE_LABELS: Record<VoiceMode, string> = {
   realtime: "Realtime (live voice, WebRTC)",
+  elevenlabs: "cmdr Montebank (ElevenLabs agent)",
   pipeline: "Whisper + TTS pipeline",
   browser: "Browser mic + OpenAI voice",
   native: "Fully on-device (free)",

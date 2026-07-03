@@ -13,9 +13,11 @@ conversation, web access, tool calling, and persistent memory.
 ## Features
 
 - 💬 **Streaming chat** with OpenAI (`gpt-4o-mini` by default — cheap and fast).
-- 🎙️ **Four voice modes**, selectable per-user in Settings:
+- 🎙️ **Five voice modes**, selectable per-user in Settings:
   - **Realtime** – live, low-latency voice conversation over WebRTC
     (OpenAI Realtime API).
+  - **cmdr Montebank (ElevenLabs)** – live voice conversation with an
+    ElevenLabs Conversational AI agent over WebRTC.
   - **Pipeline** – record audio in the browser, transcribed via Whisper,
     replies spoken via OpenAI TTS.
   - **Browser** – Web Speech API for speech-to-text, OpenAI TTS for replies.
@@ -234,6 +236,7 @@ intentionally blank-slate assistant.
 | Mode | STT | TTS | Cost | Notes |
 | --- | --- | --- | --- | --- |
 | `realtime` | OpenAI Realtime (WebRTC) | OpenAI Realtime | $$ | Lowest latency, true live conversation, interruptible. Not saved to chat history (v1). |
+| `elevenlabs` | ElevenLabs agent (WebRTC) | ElevenLabs agent | $$ | Live conversation with the "cmdr Montebank" ElevenLabs Conversational AI agent. Agent ID set via `VITE_ELEVENLABS_AGENT_ID`. Not saved to chat history (v1). |
 | `pipeline` | Whisper API | OpenAI TTS API | $ | Record → transcribe → send → speak reply. |
 | `browser` | Web Speech API | OpenAI TTS API | $ (TTS only) | Browser STT, server-side TTS. |
 | `native` | Web Speech API | `window.speechSynthesis` | Free | Fully on-device, quality varies by browser/OS. |

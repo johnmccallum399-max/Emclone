@@ -8,10 +8,12 @@ interface VoiceControlsProps {
   onToggleAutoSpeak: () => void;
   disabled?: boolean;
   onOpenRealtime: () => void;
+  onOpenElevenLabs: () => void;
 }
 
 const MODE_LABELS: Record<VoiceMode, string> = {
   realtime: "Realtime (live voice)",
+  elevenlabs: "cmdr Montebank (ElevenLabs)",
   pipeline: "Whisper + TTS pipeline",
   browser: "Browser mic + OpenAI voice",
   native: "Fully on-device (free)",
@@ -24,11 +26,17 @@ export function VoiceControls({
   onToggleAutoSpeak,
   disabled,
   onOpenRealtime,
+  onOpenElevenLabs,
 }: VoiceControlsProps) {
-  if (voiceMode === "realtime") {
+  if (voiceMode === "realtime" || voiceMode === "elevenlabs") {
     return (
       <div className="voice-controls">
-        <button type="button" className="voice-btn" onClick={onOpenRealtime} disabled={disabled}>
+        <button
+          type="button"
+          className="voice-btn"
+          onClick={voiceMode === "realtime" ? onOpenRealtime : onOpenElevenLabs}
+          disabled={disabled}
+        >
           Start live voice
         </button>
         <span className="voice-mode-label">{MODE_LABELS[voiceMode]}</span>
