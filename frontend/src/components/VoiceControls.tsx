@@ -13,7 +13,7 @@ interface VoiceControlsProps {
 
 const MODE_LABELS: Record<VoiceMode, string> = {
   realtime: "Realtime (live voice)",
-  elevenlabs: "cmdr Montebank (ElevenLabs)",
+  elevenlabs: "ElevenLabs (live voice)",
   pipeline: "Whisper + TTS pipeline",
   browser: "Browser mic + OpenAI voice",
   native: "Fully on-device (free)",
