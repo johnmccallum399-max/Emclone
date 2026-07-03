@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { SqliteAdapter } from "../src/db/sqlite.js";
+import { DEFAULT_PERSONA } from "../src/config/persona.js";
 
 describe("SqliteAdapter", () => {
   let db: SqliteAdapter;
@@ -78,6 +79,6 @@ describe("SqliteAdapter", () => {
     const settings = await db.getSettings(user.id);
     expect(settings.voiceMode).toBe("native");
     expect(settings.toolPermissions).toEqual({});
-    expect(settings.persona.name).toBe("Assistant");
+    expect(settings.persona.name).toBe(DEFAULT_PERSONA.name);
   });
 });
