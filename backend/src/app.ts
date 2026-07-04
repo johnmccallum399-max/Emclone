@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { apiRateLimiter } from "./middleware/rateLimit.js";
 import { authRouter } from "./routes/auth.js";
 import { chatRouter } from "./routes/chat.js";
+import { hubRouter } from "./routes/hub.js";
 import { memoryRouter } from "./routes/memory.js";
 import { settingsRouter } from "./routes/settings.js";
 import { voiceRouter } from "./routes/voice.js";
@@ -39,6 +40,7 @@ export function createApp(): Express {
 
   app.use("/api/auth", authRouter);
   app.use("/api/chat", chatRouter);
+  app.use("/api/hub", hubRouter);
   app.use("/api/memory", memoryRouter);
   app.use("/api/settings", settingsRouter);
   app.use("/api/voice", voiceRouter);

@@ -7,9 +7,10 @@ interface SidebarProps {
   activeId: number | null;
   onSelect: (id: number) => void;
   onOpenSettings: () => void;
+  onOpenHub: () => void;
 }
 
-export function Sidebar({ activeId, onSelect, onOpenSettings }: SidebarProps) {
+export function Sidebar({ activeId, onSelect, onOpenSettings, onOpenHub }: SidebarProps) {
   const { user, logout } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,6 +146,9 @@ export function Sidebar({ activeId, onSelect, onOpenSettings }: SidebarProps) {
       </div>
 
       <div className="sidebar-footer">
+        <button type="button" className="secondary" onClick={onOpenHub}>
+          Orchestration Hub
+        </button>
         <button type="button" className="secondary" onClick={onOpenSettings}>
           Settings
         </button>

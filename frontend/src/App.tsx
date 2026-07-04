@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { ChatWindow } from "./components/ChatWindow";
+import { HubView } from "./components/HubView";
 import { LoginScreen } from "./components/LoginScreen";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Sidebar } from "./components/Sidebar";
@@ -10,6 +11,15 @@ import { SettingsProvider } from "./context/SettingsContext";
 function AuthenticatedApp() {
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [view, setView] = useState<"chat" | "hub">("chat");
+
+  if (view === "hub") {
+    return (
+      <SettingsProvider>
+        <HubView onBackToChat={() => setView("chat")} />
+      </SettingsProvider>
+    );
+  }
 
   return (
     <SettingsProvider>
@@ -18,6 +28,7 @@ function AuthenticatedApp() {
           activeId={activeConversationId}
           onSelect={setActiveConversationId}
           onOpenSettings={() => setSettingsOpen(true)}
+          onOpenHub={() => setView("hub")}
         />
         <ChatWindow conversationId={activeConversationId} />
         {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}

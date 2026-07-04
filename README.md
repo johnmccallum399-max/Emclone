@@ -28,6 +28,10 @@ conversation, web access, tool calling, and persistent memory.
   - `placeholder_api` – template for wiring up your own external API.
 - 🧠 **Memory**: short-term (recent conversation history) + long-term
   (persisted facts injected into the system prompt).
+- 🕸️ **Orchestration Hub**: register your different LLM accounts (OpenAI,
+  Anthropic/Claude, Google/Gemini, or any OpenAI-compatible API) as agents
+  and let them talk to each other — the hub relays the conversation
+  automatically, no copy-pasting prompts between tabs.
 - 🎭 **Fully configurable personality** – edit name, description, and system
   prompt from Settings. Ships with a near-blank-slate default persona.
 - 🔒 **Security**: API keys never reach the browser, JWT auth, rate limiting,
@@ -193,6 +197,49 @@ Open **Settings** in the app (gear icon in the sidebar) and edit:
 Changes are saved per-user in the database and take effect on the next
 message. The default persona (`backend/src/config/persona.ts`) is an
 intentionally blank-slate assistant.
+
+---
+
+## Orchestration Hub
+
+The hub lets your different LLM accounts collaborate autonomously. Open
+**Orchestration Hub** from the sidebar, then:
+
+1. **Add agents** — each agent is one LLM account: a provider, an API key, a
+   model, and an optional persona. Supported providers:
+
+   | Provider | Notes |
+   | --- | --- |
+   | OpenAI | `gpt-4o-mini`, `gpt-4o`, ... |
+   | Anthropic (Claude) | `claude-sonnet-4-5`, ... |
+   | Google (Gemini) | `gemini-2.5-flash`, ... |
+   | OpenAI-compatible | Anything speaking the OpenAI chat-completions API — Grok/xAI, Mistral, Groq, OpenRouter, DeepSeek, local Ollama, ... Requires a base URL (e.g. `https://api.x.ai/v1`). |
+
+   Agent API keys are encrypted at rest (AES-256-GCM, key derived from
+   `JWT_SECRET`) and are never sent to the browser. Note: rotating
+   `JWT_SECRET` invalidates stored agent keys — re-enter them afterwards.
+
+2. **Create a session** — give the agents a shared goal, pick a mode, the
+   number of rounds, and which agents participate:
+   - **Discussion** — agents collaborate toward the goal, building on and
+     critiquing each other's contributions.
+   - **Debate** — agents take positions and challenge each other directly.
+   - **Pipeline** — each agent improves the previous agent's draft, assembly-
+     line style.
+
+3. **Run** — the backend orchestrates the rounds: every agent sees the full
+   speaker-labeled transcript and contributes in turn, live-streamed to the
+   UI. Optionally the run ends with a **synthesis** turn that merges the
+   whole conversation into one final answer.
+
+4. **Interject & continue** — between runs you can add your own guidance to
+   the transcript and press *Continue* for more rounds; agents see your notes
+   as `[User]` messages.
+
+Transcripts persist in the database, so sessions can be revisited and
+continued any time. If one agent's provider errors mid-round (bad key, rate
+limit), the failure is noted in the transcript and the other agents keep
+going.
 
 ---
 

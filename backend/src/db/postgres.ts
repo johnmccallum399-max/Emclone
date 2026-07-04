@@ -4,7 +4,15 @@ import type {
   ChatMessageRecord,
   Conversation,
   DatabaseAdapter,
+  HubAgent,
+  HubAgentPatch,
+  HubMessageRecord,
+  HubSession,
+  HubSessionStatus,
   MemoryEntry,
+  NewHubAgentInput,
+  NewHubMessageInput,
+  NewHubSessionInput,
   NewMessageInput,
   User,
   UserSettings,
@@ -58,9 +66,55 @@ CREATE TABLE IF NOT EXISTS user_settings (
   voice_mode TEXT NOT NULL DEFAULT 'native'
 );
 
+CREATE TABLE IF NOT EXISTS hub_agents (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  api_key TEXT NOT NULL,
+  base_url TEXT,
+  system_prompt TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS hub_sessions (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  goal TEXT NOT NULL,
+  mode TEXT NOT NULL DEFAULT 'discussion',
+  max_rounds INTEGER NOT NULL DEFAULT 3,
+  synthesize BOOLEAN NOT NULL DEFAULT TRUE,
+  status TEXT NOT NULL DEFAULT 'idle',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS hub_session_agents (
+  session_id INTEGER NOT NULL REFERENCES hub_sessions(id) ON DELETE CASCADE,
+  agent_id INTEGER NOT NULL REFERENCES hub_agents(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL,
+  PRIMARY KEY (session_id, agent_id)
+);
+
+CREATE TABLE IF NOT EXISTS hub_messages (
+  id SERIAL PRIMARY KEY,
+  session_id INTEGER NOT NULL REFERENCES hub_sessions(id) ON DELETE CASCADE,
+  agent_id INTEGER REFERENCES hub_agents(id) ON DELETE SET NULL,
+  author_name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  round INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_memory_user ON memory(user_id);
+CREATE INDEX IF NOT EXISTS idx_hub_agents_user ON hub_agents(user_id);
+CREATE INDEX IF NOT EXISTS idx_hub_sessions_user ON hub_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_hub_messages_session ON hub_messages(session_id);
 `;
 
 export class PostgresAdapter implements DatabaseAdapter {
@@ -261,6 +315,158 @@ export class PostgresAdapter implements DatabaseAdapter {
     );
   }
 
+  // ---- Hub agents ---------------------------------------------------------
+
+  async createHubAgent(input: NewHubAgentInput): Promise<HubAgent> {
+    const result = await this.pool.query(
+      `INSERT INTO hub_agents (user_id, name, provider, model, api_key, base_url, system_prompt)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [
+        input.userId,
+        input.name,
+        input.provider,
+        input.model,
+        input.apiKeySealed,
+        input.baseUrl ?? null,
+        input.systemPrompt ?? "",
+      ]
+    );
+    return this.mapHubAgent(result.rows[0]);
+  }
+
+  async listHubAgents(userId: number): Promise<HubAgent[]> {
+    const result = await this.pool.query(
+      "SELECT * FROM hub_agents WHERE user_id = $1 ORDER BY id ASC",
+      [userId]
+    );
+    return result.rows.map((row) => this.mapHubAgent(row));
+  }
+
+  async getHubAgent(id: number, userId: number): Promise<HubAgent | null> {
+    const result = await this.pool.query(
+      "SELECT * FROM hub_agents WHERE id = $1 AND user_id = $2",
+      [id, userId]
+    );
+    return result.rows[0] ? this.mapHubAgent(result.rows[0]) : null;
+  }
+
+  async updateHubAgent(id: number, userId: number, patch: HubAgentPatch): Promise<HubAgent | null> {
+    const columns: Record<string, unknown> = {};
+    if (patch.name !== undefined) columns.name = patch.name;
+    if (patch.provider !== undefined) columns.provider = patch.provider;
+    if (patch.model !== undefined) columns.model = patch.model;
+    if (patch.apiKeySealed !== undefined) columns.api_key = patch.apiKeySealed;
+    if (patch.baseUrl !== undefined) columns.base_url = patch.baseUrl;
+    if (patch.systemPrompt !== undefined) columns.system_prompt = patch.systemPrompt;
+
+    const entries = Object.entries(columns);
+    if (entries.length > 0) {
+      const sets = entries.map(([column], index) => `${column} = $${index + 3}`);
+      await this.pool.query(
+        `UPDATE hub_agents SET ${sets.join(", ")} WHERE id = $1 AND user_id = $2`,
+        [id, userId, ...entries.map(([, value]) => value)]
+      );
+    }
+    return this.getHubAgent(id, userId);
+  }
+
+  async deleteHubAgent(id: number, userId: number): Promise<void> {
+    await this.pool.query("DELETE FROM hub_agents WHERE id = $1 AND user_id = $2", [id, userId]);
+  }
+
+  // ---- Hub sessions -------------------------------------------------------
+
+  async createHubSession(input: NewHubSessionInput): Promise<HubSession> {
+    const result = await this.pool.query(
+      `INSERT INTO hub_sessions (user_id, title, goal, mode, max_rounds, synthesize)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [input.userId, input.title, input.goal, input.mode, input.maxRounds, input.synthesize]
+    );
+    const sessionId = result.rows[0].id;
+
+    for (let position = 0; position < input.agentIds.length; position++) {
+      await this.pool.query(
+        "INSERT INTO hub_session_agents (session_id, agent_id, position) VALUES ($1, $2, $3)",
+        [sessionId, input.agentIds[position], position]
+      );
+    }
+
+    const session = await this.getHubSession(sessionId, input.userId);
+    if (!session) throw new Error("Failed to create hub session");
+    return session;
+  }
+
+  async listHubSessions(userId: number): Promise<HubSession[]> {
+    const result = await this.pool.query(
+      "SELECT * FROM hub_sessions WHERE user_id = $1 ORDER BY updated_at DESC",
+      [userId]
+    );
+    const sessions: HubSession[] = [];
+    for (const row of result.rows) {
+      sessions.push(this.mapHubSession(row, await this.getSessionAgentIds(row.id)));
+    }
+    return sessions;
+  }
+
+  async getHubSession(id: number, userId: number): Promise<HubSession | null> {
+    const result = await this.pool.query(
+      "SELECT * FROM hub_sessions WHERE id = $1 AND user_id = $2",
+      [id, userId]
+    );
+    const row = result.rows[0];
+    return row ? this.mapHubSession(row, await this.getSessionAgentIds(row.id)) : null;
+  }
+
+  async setHubSessionStatus(id: number, status: HubSessionStatus): Promise<void> {
+    await this.pool.query(
+      "UPDATE hub_sessions SET status = $1, updated_at = now() WHERE id = $2",
+      [status, id]
+    );
+  }
+
+  async deleteHubSession(id: number, userId: number): Promise<void> {
+    await this.pool.query("DELETE FROM hub_sessions WHERE id = $1 AND user_id = $2", [id, userId]);
+  }
+
+  // ---- Hub messages -------------------------------------------------------
+
+  async addHubMessage(input: NewHubMessageInput): Promise<HubMessageRecord> {
+    const result = await this.pool.query(
+      `INSERT INTO hub_messages (session_id, agent_id, author_name, role, content, round)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [
+        input.sessionId,
+        input.agentId ?? null,
+        input.authorName,
+        input.role,
+        input.content,
+        input.round ?? 0,
+      ]
+    );
+    await this.pool.query("UPDATE hub_sessions SET updated_at = now() WHERE id = $1", [
+      input.sessionId,
+    ]);
+    return this.mapHubMessage(result.rows[0]);
+  }
+
+  async getHubMessages(sessionId: number, limit = 500): Promise<HubMessageRecord[]> {
+    const result = await this.pool.query(
+      `SELECT * FROM (
+         SELECT * FROM hub_messages WHERE session_id = $1 ORDER BY id DESC LIMIT $2
+       ) sub ORDER BY id ASC`,
+      [sessionId, limit]
+    );
+    return result.rows.map((row) => this.mapHubMessage(row));
+  }
+
+  private async getSessionAgentIds(sessionId: number): Promise<number[]> {
+    const result = await this.pool.query(
+      "SELECT agent_id FROM hub_session_agents WHERE session_id = $1 ORDER BY position ASC",
+      [sessionId]
+    );
+    return result.rows.map((row) => Number(row.agent_id));
+  }
+
   // ---- Mappers ----------------------------------------------------------
 
   private toIso(value: string | Date): string {
@@ -295,6 +501,49 @@ export class PostgresAdapter implements DatabaseAdapter {
       toolCalls: row.tool_calls,
       toolCallId: row.tool_call_id,
       name: row.name,
+      createdAt: this.toIso(row.created_at),
+    };
+  }
+
+  private mapHubAgent(row: any): HubAgent {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      name: row.name,
+      provider: row.provider,
+      model: row.model,
+      apiKeySealed: row.api_key,
+      baseUrl: row.base_url,
+      systemPrompt: row.system_prompt,
+      createdAt: this.toIso(row.created_at),
+    };
+  }
+
+  private mapHubSession(row: any, agentIds: number[]): HubSession {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      title: row.title,
+      goal: row.goal,
+      mode: row.mode,
+      maxRounds: row.max_rounds,
+      synthesize: Boolean(row.synthesize),
+      status: row.status,
+      agentIds,
+      createdAt: this.toIso(row.created_at),
+      updatedAt: this.toIso(row.updated_at),
+    };
+  }
+
+  private mapHubMessage(row: any): HubMessageRecord {
+    return {
+      id: row.id,
+      sessionId: row.session_id,
+      agentId: row.agent_id ?? null,
+      authorName: row.author_name,
+      role: row.role,
+      content: row.content,
+      round: row.round,
       createdAt: this.toIso(row.created_at),
     };
   }
