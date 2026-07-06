@@ -636,6 +636,54 @@ button.link-button:hover {
   margin: 0;
 }
 
+.realtime-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.mic-mute-btn {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mic-mute-btn.muted {
+  background: #7f1d1d22;
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.gain-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+.gain-slider {
+  flex: 1;
+  min-width: 80px;
+  accent-color: var(--accent);
+}
+
+.gain-value {
+  min-width: 3ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
 /* ---- Settings panel ----------------------------------------------------------- */
 
 .settings-panel {

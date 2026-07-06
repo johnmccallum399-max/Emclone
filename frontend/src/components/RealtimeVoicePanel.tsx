@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { useRealtimeSession } from "../voice/useRealtimeSession";
 
 export function RealtimeVoicePanel({ onClose }: { onClose: () => void }) {
-  const { connected, connecting, error, transcripts, connect, disconnect } = useRealtimeSession();
+  const { connected, connecting, error, transcripts, muted, gain, connect, disconnect, toggleMute, setGain } =
+    useRealtimeSession();
 
   useEffect(() => {
     return () => disconnect();
@@ -30,6 +31,33 @@ export function RealtimeVoicePanel({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </div>
+
+        {connected && (
+          <div className="realtime-controls">
+            <button
+              className={`mic-mute-btn${muted ? " muted" : ""}`}
+              onClick={toggleMute}
+              aria-label={muted ? "Unmute microphone" : "Mute microphone"}
+              title={muted ? "Unmute" : "Mute"}
+            >
+              {muted ? "🎤✕ Unmute" : "🎤 Mute"}
+            </button>
+            <label className="gain-label">
+              <span>Sensitivity</span>
+              <input
+                type="range"
+                className="gain-slider"
+                min={0}
+                max={2}
+                step={0.05}
+                value={gain}
+                onChange={(e) => setGain(Number(e.target.value))}
+                aria-label="Microphone sensitivity"
+              />
+              <span className="gain-value">{Math.round(gain * 100)}%</span>
+            </label>
+          </div>
+        )}
 
         <div className="modal-actions">
           {!connected ? (
