@@ -17,17 +17,25 @@ interface RealtimeEvent {
  * over WebRTC. The backend mints a short-lived ephemeral token
  * (`/api/voice/realtime-session`); the browser then connects directly to
  * OpenAI so audio never round-trips through our server.
+ *
+ * Mic audio is routed through a Web Audio GainNode so gain can be adjusted
+ * live without renegotiating the peer connection.
  */
 export function useRealtimeSession() {
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transcripts, setTranscripts] = useState<RealtimeTranscriptEntry[]>([]);
+  const [muted, setMuted] = useState(false);
+  const [gain, setGainState] = useState(1.0);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const gainRef = useRef(1.0);
 
   const disconnect = useCallback(() => {
     dcRef.current?.close();
@@ -40,12 +48,17 @@ export function useRealtimeSession() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
 
+    audioCtxRef.current?.close();
+    audioCtxRef.current = null;
+    gainNodeRef.current = null;
+
     if (audioElRef.current) {
       audioElRef.current.srcObject = null;
       audioElRef.current = null;
     }
 
     setConnected(false);
+    setMuted(false);
   }, []);
 
   const handleEvent = useCallback((event: RealtimeEvent) => {
@@ -68,10 +81,25 @@ export function useRealtimeSession() {
     }
   }, []);
 
+  const toggleMute = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev;
+      streamRef.current?.getTracks().forEach((t) => { t.enabled = !next; });
+      return next;
+    });
+  }, []);
+
+  const setGain = useCallback((value: number) => {
+    gainRef.current = value;
+    setGainState(value);
+    if (gainNodeRef.current) gainNodeRef.current.gain.value = value;
+  }, []);
+
   const connect = useCallback(async () => {
     setError(null);
     setConnecting(true);
     setTranscripts([]);
+    setMuted(false);
 
     try {
       const session = await createRealtimeSession();
@@ -92,7 +120,19 @@ export function useRealtimeSession() {
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+      // Route mic through a GainNode so gain (and mute via track.enabled) can
+      // be adjusted live without touching the peer connection.
+      const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.value = gainRef.current;
+      gainNodeRef.current = gainNode;
+      const dest = audioCtx.createMediaStreamDestination();
+      audioCtx.createMediaStreamSource(stream).connect(gainNode);
+      gainNode.connect(dest);
+
+      dest.stream.getTracks().forEach((track) => pc.addTrack(track, dest.stream));
 
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
@@ -135,5 +175,5 @@ export function useRealtimeSession() {
     }
   }, [disconnect, handleEvent]);
 
-  return { connected, connecting, error, transcripts, connect, disconnect };
+  return { connected, connecting, error, transcripts, muted, gain, connect, disconnect, toggleMute, setGain };
 }
