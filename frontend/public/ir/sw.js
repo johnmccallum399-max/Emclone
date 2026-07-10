@@ -1,10 +1,11 @@
 /* IR Remote service worker — precache the app shell so it works offline. */
-const CACHE = "ir-remote-v1";
+const CACHE = "ir-remote-v2";
 const ASSETS = [
   "./",
   "index.html",
   "style.css",
   "encoders.js",
+  "flipper.js",
   "presets.js",
   "app.js",
   "manifest.webmanifest",

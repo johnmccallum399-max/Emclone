@@ -258,6 +258,18 @@ dialog textarea {
   font-size: 0.85rem;
 }
 
+.file-btn {
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .proto-fields {
   display: none;
 }

@@ -129,6 +129,7 @@
 
     const grid = document.createElement("div");
     grid.className = "button-grid";
+    grid.style.gridTemplateColumns = `repeat(${remote.columns || 3}, 1fr)`;
     for (const button of remote.buttons) {
       const el = document.createElement("button");
       el.className = "ir-btn";
@@ -173,6 +174,14 @@
           render();
         }
       };
+      const cols = document.createElement("button");
+      cols.textContent = `Columns: ${remote.columns || 3}`;
+      cols.onclick = () => {
+        const current = remote.columns || 3;
+        remote.columns = current >= 4 ? 2 : current + 1; // cycle 2 → 3 → 4
+        save();
+        render();
+      };
       const del = document.createElement("button");
       del.className = "danger";
       del.textContent = "Delete remote";
@@ -184,6 +193,7 @@
         render();
       };
       meta.appendChild(rename);
+      meta.appendChild(cols);
       meta.appendChild(del);
       view.appendChild(meta);
     }
@@ -349,12 +359,47 @@
     remoteDialog.showModal();
   }
 
-  remoteForm.onsubmit = () => {
-    const preset = IR_PRESETS.find((p) => p.id === presetSelect.value);
+  const irFileInput = document.getElementById("ir-file");
+  document.getElementById("ir-file-btn").onclick = () => irFileInput.click();
+  irFileInput.onchange = async () => {
+    const file = irFileInput.files[0];
+    if (!file) return;
+    remoteForm.ir_import.value = await file.text();
+    if (!remoteForm.name.value.trim()) {
+      remoteForm.name.value = file.name.replace(/\.[^.]*$/, "").slice(0, 24);
+    }
+    irFileInput.value = "";
+  };
+
+  remoteForm.onsubmit = (e) => {
+    const irText = remoteForm.ir_import.value.trim();
+    let buttons;
+    let skipped = [];
+    let presetColumns;
+    if (irText) {
+      const result = FlipperIR.parse(irText);
+      if (!result.buttons.length) {
+        e.preventDefault();
+        toast(
+          result.skipped.length
+            ? "No usable codes: " + result.skipped[0]
+            : "Could not find any codes in the pasted text",
+          true
+        );
+        return;
+      }
+      buttons = result.buttons;
+      skipped = result.skipped;
+    } else {
+      const preset = IR_PRESETS.find((p) => p.id === presetSelect.value);
+      buttons = preset ? preset.buttons : [];
+      presetColumns = preset && preset.columns;
+    }
     const remote = {
       id: uid(),
       name: remoteForm.name.value.trim().slice(0, 24) || "Remote",
-      buttons: (preset ? preset.buttons : []).map((b) => ({
+      columns: presetColumns || 3,
+      buttons: buttons.map((b) => ({
         id: uid(),
         repeat: b.protocol === "sirc" ? 3 : 1,
         ...b,
@@ -365,6 +410,15 @@
     state.activeRemoteId = remote.id;
     save();
     render();
+    if (skipped.length) {
+      toast(
+        `Imported ${remote.buttons.length} button(s); skipped ${skipped.length}: ` +
+          skipped[0],
+        true
+      );
+    } else if (irText) {
+      toast(`Imported ${remote.buttons.length} button(s)`);
+    }
   };
 
   document.getElementById("remote-cancel").onclick = () => remoteDialog.close();

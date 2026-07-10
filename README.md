@@ -260,9 +260,15 @@ full 36–40 kHz carrier — and plays it with the Web Audio API.
 
 Features:
 
-- **Multiple remotes** with a touch-friendly button grid, all stored locally
-  on the device (plus JSON export/import for backup).
-- **Brand presets** to start from: Samsung TV, LG TV, Sony TV, Philips (RC5).
+- **Multiple remotes** with a touch-friendly button grid (2–4 columns), all
+  stored locally on the device (plus JSON export/import for backup).
+- **Brand presets** to start from: Samsung TV, LG TV, Sony TV, Philips
+  (RC5), and the standard 24-key LED strip remote.
+- **Flipper Zero `.ir` import**: paste or upload a `.ir` file (e.g. from the
+  community [Flipper-IRDB](https://github.com/Flipper-XFW/Flipper-IRDB)
+  database) and get a ready-made remote — covers projectors, soundbars,
+  lights, fans, ACs, and thousands of other devices. Supported protocols
+  convert automatically; unsupported records are skipped with a note.
 - **Protocols**: NEC, Samsung, Sony SIRC (12/15/20-bit), Philips RC5, raw
   microsecond timings, and Pronto hex — so you can paste codes from any
   public IR database (e.g. LIRC configs, irdb).

@@ -112,6 +112,15 @@
         <label>Start from
           <select name="preset" id="preset-select"></select>
         </label>
+        <label>…or import codes for any device (Flipper Zero <code>.ir</code> file)
+          <textarea
+            name="ir_import"
+            rows="3"
+            placeholder="Paste a .ir file from Flipper-IRDB here — works for projectors, soundbars, lights, fans, ACs, ..."
+          ></textarea>
+        </label>
+        <button type="button" id="ir-file-btn" class="file-btn">Choose .ir file…</button>
+        <input type="file" id="ir-file" accept=".ir,.txt,text/plain" hidden />
         <div class="dialog-actions">
           <button type="button" id="remote-cancel" class="secondary">Cancel</button>
           <span class="spacer"></span>
@@ -154,6 +163,7 @@
     </dialog>
 
     <script src="encoders.js"></script>
+    <script src="flipper.js"></script>
     <script src="presets.js"></script>
     <script src="app.js"></script>
   </body>
