@@ -243,6 +243,39 @@ going.
 
 ---
 
+## IR Remote (phone IR blaster app)
+
+The repo also ships a standalone, installable web app for controlling TVs and
+other appliances with a **headphone-jack IR blaster** plugged into your phone.
+It lives at **`/ir/`** on the deployed frontend (e.g.
+`https://your-frontend.vercel.app/ir/`) — no login required, and it works
+fully offline once loaded (PWA: open it in your phone browser and use
+*Add to Home screen* to install it like a native app).
+
+How it works: audio-jack IR blasters are just IR LEDs powered by the
+headphone signal. The app renders each IR command as a stereo waveform at
+half the carrier frequency with the right channel inverted — the dongle's
+two anti-parallel LEDs conduct on alternate half-cycles, reproducing the
+full 36–40 kHz carrier — and plays it with the Web Audio API.
+
+Features:
+
+- **Multiple remotes** with a touch-friendly button grid, all stored locally
+  on the device (plus JSON export/import for backup).
+- **Brand presets** to start from: Samsung TV, LG TV, Sony TV, Philips (RC5).
+- **Protocols**: NEC, Samsung, Sony SIRC (12/15/20-bit), Philips RC5, raw
+  microsecond timings, and Pronto hex — so you can paste codes from any
+  public IR database (e.g. LIRC configs, irdb).
+- **Edit mode** (✏️) to add/edit/delete buttons and remotes.
+
+For a reliable signal: set media volume to **100%**, turn off Bluetooth
+audio and any equalizer/sound effects, and plug the blaster in firmly.
+Note this drives *passive audio-jack blasters*; phones with a built-in IR
+port (ConsumerIrManager) or proprietary USB-C dongles need their native
+apps instead.
+
+---
+
 ## Adding a new tool
 
 1. Create a new file in `backend/src/tools/`, e.g. `myTool.ts`, exporting a

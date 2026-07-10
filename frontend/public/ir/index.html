@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0c111d" />
+    <title>IR Remote</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>IR Remote</h1>
+      <div class="topbar-actions">
+        <button id="edit-toggle" class="icon-btn" title="Edit remote" aria-label="Edit remote">✏️</button>
+        <button id="settings-open" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
+      </div>
+    </header>
+
+    <nav id="remote-tabs" class="remote-tabs"></nav>
+
+    <main id="remote-view" class="remote-view"></main>
+
+    <div id="status-toast" class="toast" hidden></div>
+
+    <!-- Button editor dialog -->
+    <dialog id="button-dialog">
+      <form method="dialog" id="button-form">
+        <h2 id="button-dialog-title">Add button</h2>
+        <label>Label
+          <input name="label" required maxlength="16" autocomplete="off" />
+        </label>
+        <label>Color
+          <select name="color">
+            <option value="dark">Dark</option>
+            <option value="slate">Slate</option>
+            <option value="red">Red</option>
+            <option value="blue">Blue</option>
+            <option value="green">Green</option>
+            <option value="amber">Amber</option>
+          </select>
+        </label>
+        <label>Protocol
+          <select name="protocol" id="protocol-select"></select>
+        </label>
+
+        <div class="proto-fields" data-proto="nec samsung32">
+          <label>Code (8 hex digits, e.g. 20DF10EF)
+            <input name="code_hex32" pattern="[0-9a-fA-F]{8}" autocomplete="off" />
+          </label>
+        </div>
+        <div class="proto-fields" data-proto="sirc">
+          <label>Bits
+            <select name="sirc_bits">
+              <option value="12">12</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+            </select>
+          </label>
+          <label>Code (hex, e.g. A90)
+            <input name="code_sirc" pattern="[0-9a-fA-F]{1,5}" autocomplete="off" />
+          </label>
+        </div>
+        <div class="proto-fields" data-proto="rc5">
+          <label>Address (0–31)
+            <input name="rc5_address" type="number" min="0" max="31" />
+          </label>
+          <label>Command (0–127)
+            <input name="rc5_command" type="number" min="0" max="127" />
+          </label>
+        </div>
+        <div class="proto-fields" data-proto="raw">
+          <label>Carrier frequency (Hz)
+            <input name="raw_freq" type="number" min="20000" max="60000" value="38000" />
+          </label>
+          <label>Durations (µs, mark first, space/comma separated)
+            <textarea name="raw_durations" rows="3" placeholder="9000 4500 560 560 ..."></textarea>
+          </label>
+        </div>
+        <div class="proto-fields" data-proto="pronto">
+          <label>Pronto hex
+            <textarea name="pronto_code" rows="3" placeholder="0000 006D 0022 0000 ..."></textarea>
+          </label>
+        </div>
+
+        <label>Send count (frames per press)
+          <input name="repeat" type="number" min="1" max="10" value="1" />
+        </label>
+
+        <div class="dialog-actions">
+          <button type="button" id="button-test" class="secondary">▶ Test</button>
+          <button type="button" id="button-delete" class="danger" hidden>Delete</button>
+          <span class="spacer"></span>
+          <button type="button" id="button-cancel" class="secondary">Cancel</button>
+          <button type="submit" class="primary">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- New remote dialog -->
+    <dialog id="remote-dialog">
+      <form method="dialog" id="remote-form">
+        <h2>New remote</h2>
+        <label>Name
+          <input name="name" required maxlength="24" autocomplete="off" />
+        </label>
+        <label>Start from
+          <select name="preset" id="preset-select"></select>
+        </label>
+        <div class="dialog-actions">
+          <button type="button" id="remote-cancel" class="secondary">Cancel</button>
+          <span class="spacer"></span>
+          <button type="submit" class="primary">Create</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Settings dialog -->
+    <dialog id="settings-dialog">
+      <form method="dialog">
+        <h2>Settings</h2>
+        <label>Output mode
+          <select id="setting-output">
+            <option value="dual">Stereo inverted — dual-LED dongle (recommended)</option>
+            <option value="mono">Stereo in-phase</option>
+          </select>
+        </label>
+        <label>Lead-in silence (ms)
+          <input id="setting-leadin" type="number" min="0" max="1000" step="10" />
+        </label>
+        <details class="help">
+          <summary>How to get a reliable signal</summary>
+          <ul>
+            <li>Plug the IR blaster firmly into the headphone jack.</li>
+            <li>Set <strong>media volume to 100%</strong> — the blaster is powered by the audio signal.</li>
+            <li>Turn <strong>Bluetooth audio off</strong> so sound routes to the jack.</li>
+            <li>Disable equalizers / sound effects (Dolby, etc.) — they distort the carrier.</li>
+            <li>Aim the blaster at the device from a few meters or less.</li>
+          </ul>
+        </details>
+        <div class="dialog-actions">
+          <button type="button" id="export-btn" class="secondary">Export</button>
+          <button type="button" id="import-btn" class="secondary">Import</button>
+          <span class="spacer"></span>
+          <button type="submit" class="primary">Done</button>
+        </div>
+        <input type="file" id="import-file" accept="application/json" hidden />
+      </form>
+    </dialog>
+
+    <script src="encoders.js"></script>
+    <script src="presets.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -27,7 +27,10 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          navigateFallbackDenylist: [/^\/api\//],
+          // /ir/ is a standalone PWA with its own service worker — keep the
+          // main app's SW from intercepting its navigations or assets.
+          navigateFallbackDenylist: [/^\/api\//, /^\/ir(\/|$)/],
+          globIgnores: ["ir/**"],
         },
       }),
     ],

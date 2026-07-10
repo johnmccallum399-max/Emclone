@@ -8,6 +8,8 @@
     }
   },
   "rewrites": [
+    { "source": "/ir", "destination": "/ir/index.html" },
+    { "source": "/ir/", "destination": "/ir/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
