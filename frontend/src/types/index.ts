@@ -38,7 +38,7 @@ export interface ToolInfo {
   enabled: boolean;
 }
 
-export type VoiceMode = "realtime" | "pipeline" | "browser" | "native";
+export type VoiceMode = "realtime" | "elevenlabs" | "pipeline" | "browser" | "native";
 
 export interface SettingsResponse {
   persona: PersonaConfig;

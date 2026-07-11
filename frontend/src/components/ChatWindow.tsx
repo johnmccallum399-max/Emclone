@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { useSettings } from "../context/SettingsContext";
 import { useChatStream } from "../hooks/useChatStream";
 import { useVoiceController } from "../voice/useVoiceController";
@@ -6,6 +6,12 @@ import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
 import { RealtimeVoicePanel } from "./RealtimeVoicePanel";
 import { VoiceControls } from "./VoiceControls";
+
+// Lazy-loaded so the ElevenLabs SDK (which bundles livekit-client, ~500 kB)
+// is only fetched when the panel is actually opened.
+const ElevenLabsVoicePanel = lazy(() =>
+  import("./ElevenLabsVoicePanel").then((m) => ({ default: m.ElevenLabsVoicePanel }))
+);
 
 interface ChatWindowProps {
   conversationId: number | null;
@@ -16,6 +22,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   const { messages, loading, streaming, error, sendMessage } = useChatStream(conversationId);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [realtimeOpen, setRealtimeOpen] = useState(false);
+  const [elevenLabsOpen, setElevenLabsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pendingSpeakRef = useRef<((text: string) => Promise<void>) | null>(null);
 
@@ -94,11 +101,17 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           onToggleAutoSpeak={() => setAutoSpeak((v) => !v)}
           disabled={!!streaming}
           onOpenRealtime={() => setRealtimeOpen(true)}
+          onOpenElevenLabs={() => setElevenLabsOpen(true)}
         />
         <ChatInput onSend={handleSend} disabled={!!streaming} />
       </div>
 
       {realtimeOpen && <RealtimeVoicePanel onClose={() => setRealtimeOpen(false)} />}
+      {elevenLabsOpen && (
+        <Suspense fallback={null}>
+          <ElevenLabsVoicePanel onClose={() => setElevenLabsOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

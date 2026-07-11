@@ -10,7 +10,7 @@ export const settingsRouter = Router();
 
 settingsRouter.use(requireAuth);
 
-const VOICE_MODES = ["realtime", "pipeline", "browser", "native"] as const;
+const VOICE_MODES = ["realtime", "elevenlabs", "pipeline", "browser", "native"] as const;
 
 settingsRouter.get(
   "/",
