@@ -6,6 +6,7 @@ import type {
   ChatMessageRecord,
   Conversation,
   DatabaseAdapter,
+  HubAgent,
   MemoryEntry,
   NewMessageInput,
   User,
@@ -60,9 +61,22 @@ CREATE TABLE IF NOT EXISTS user_settings (
   voice_mode TEXT NOT NULL DEFAULT 'native'
 );
 
+CREATE TABLE IF NOT EXISTS hub_agents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  api_key_enc TEXT NOT NULL,
+  base_url TEXT,
+  persona TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_memory_user ON memory(user_id);
+CREATE INDEX IF NOT EXISTS idx_hub_agents_user ON hub_agents(user_id);
 `;
 
 export class SqliteAdapter implements DatabaseAdapter {
@@ -272,6 +286,51 @@ export class SqliteAdapter implements DatabaseAdapter {
       id: row.id,
       username: row.username,
       passwordHash: row.password_hash,
+      createdAt: row.created_at,
+    };
+  }
+
+  // ---- Orchestration Hub -----------------------------------------------
+
+  async listHubAgents(userId: number): Promise<HubAgent[]> {
+    const rows = this.db
+      .prepare("SELECT * FROM hub_agents WHERE user_id = ? ORDER BY created_at ASC")
+      .all(userId) as any[];
+    return rows.map((r) => this.mapHubAgent(r));
+  }
+
+  async createHubAgent(
+    userId: number,
+    name: string,
+    provider: string,
+    model: string,
+    apiKeyEnc: string,
+    baseUrl: string | null,
+    persona: string | null
+  ): Promise<HubAgent> {
+    const result = this.db
+      .prepare(
+        "INSERT INTO hub_agents (user_id, name, provider, model, api_key_enc, base_url, persona) VALUES (?, ?, ?, ?, ?, ?, ?)"
+      )
+      .run(userId, name, provider, model, apiKeyEnc, baseUrl, persona);
+    const row = this.db.prepare("SELECT * FROM hub_agents WHERE id = ?").get(result.lastInsertRowid) as any;
+    return this.mapHubAgent(row);
+  }
+
+  async deleteHubAgent(id: number, userId: number): Promise<void> {
+    this.db.prepare("DELETE FROM hub_agents WHERE id = ? AND user_id = ?").run(id, userId);
+  }
+
+  private mapHubAgent(row: any): HubAgent {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      name: row.name,
+      provider: row.provider,
+      model: row.model,
+      apiKeyEnc: row.api_key_enc,
+      baseUrl: row.base_url ?? null,
+      persona: row.persona ?? null,
       createdAt: row.created_at,
     };
   }

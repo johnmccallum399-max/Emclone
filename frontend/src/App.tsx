@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChatWindow } from "./components/ChatWindow";
 import { LoginScreen } from "./components/LoginScreen";
+import { OrchestratorHub } from "./components/OrchestratorHub";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { Sidebar } from "./components/Sidebar";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -9,6 +10,7 @@ import { SettingsProvider } from "./context/SettingsContext";
 function AuthenticatedApp() {
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [hubOpen, setHubOpen] = useState(false);
 
   return (
     <SettingsProvider>
@@ -17,9 +19,11 @@ function AuthenticatedApp() {
           activeId={activeConversationId}
           onSelect={setActiveConversationId}
           onOpenSettings={() => setSettingsOpen(true)}
+          onOpenHub={() => setHubOpen(true)}
         />
         <ChatWindow conversationId={activeConversationId} />
         {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
+        {hubOpen && <OrchestratorHub onClose={() => setHubOpen(false)} />}
       </div>
     </SettingsProvider>
   );

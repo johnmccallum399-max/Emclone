@@ -684,6 +684,95 @@ button.link-button:hover {
   font-size: 0.8rem;
 }
 
+/* ---- Orchestration Hub -------------------------------------------------------- */
+
+.hub-panel {
+  max-width: 540px;
+}
+
+.hub-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.hub-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 0.75rem;
+}
+
+.hub-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.hub-field input,
+.hub-field select,
+.hub-field textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.6rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.hub-agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.hub-agent-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+}
+
+.hub-agent-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.hub-agent-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.hub-agent-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hub-agent-delete {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.hub-agent-delete:hover {
+  color: #ef4444;
+}
+
 /* ---- Settings panel ----------------------------------------------------------- */
 
 .settings-panel {

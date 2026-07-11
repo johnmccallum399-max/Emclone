@@ -180,6 +180,46 @@ export async function setVoiceMode(mode: VoiceMode): Promise<void> {
   await apiFetch("/api/settings/voice", { method: "PUT", body: JSON.stringify({ mode }) });
 }
 
+// ---- Orchestration Hub --------------------------------------------------
+
+export interface HubAgentSummary {
+  id: number;
+  userId: number;
+  name: string;
+  provider: string;
+  model: string;
+  baseUrl: string | null;
+  persona: string | null;
+  hasApiKey: boolean;
+  createdAt: string;
+}
+
+export interface CreateHubAgentInput {
+  name: string;
+  provider: "anthropic" | "openai-compatible";
+  model: string;
+  apiKey: string;
+  baseUrl?: string | null;
+  persona?: string | null;
+}
+
+export async function listHubAgents(): Promise<HubAgentSummary[]> {
+  const data = await apiJson<{ agents: HubAgentSummary[] }>("/api/hub/agents");
+  return data.agents;
+}
+
+export async function createHubAgent(input: CreateHubAgentInput): Promise<HubAgentSummary> {
+  const data = await apiJson<{ agent: HubAgentSummary }>("/api/hub/agents", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return data.agent;
+}
+
+export async function deleteHubAgent(id: number): Promise<void> {
+  await apiFetch(`/api/hub/agents/${id}`, { method: "DELETE" });
+}
+
 // ---- Voice ----------------------------------------------------------------
 
 export async function createRealtimeSession(): Promise<any> {

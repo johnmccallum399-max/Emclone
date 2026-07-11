@@ -4,6 +4,7 @@ import type {
   ChatMessageRecord,
   Conversation,
   DatabaseAdapter,
+  HubAgent,
   MemoryEntry,
   NewMessageInput,
   User,
@@ -58,9 +59,22 @@ CREATE TABLE IF NOT EXISTS user_settings (
   voice_mode TEXT NOT NULL DEFAULT 'native'
 );
 
+CREATE TABLE IF NOT EXISTS hub_agents (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  api_key_enc TEXT NOT NULL,
+  base_url TEXT,
+  persona TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_memory_user ON memory(user_id);
+CREATE INDEX IF NOT EXISTS idx_hub_agents_user ON hub_agents(user_id);
 `;
 
 export class PostgresAdapter implements DatabaseAdapter {
@@ -272,6 +286,50 @@ export class PostgresAdapter implements DatabaseAdapter {
       id: row.id,
       username: row.username,
       passwordHash: row.password_hash,
+      createdAt: this.toIso(row.created_at),
+    };
+  }
+
+  // ---- Orchestration Hub -----------------------------------------------
+
+  async listHubAgents(userId: number): Promise<HubAgent[]> {
+    const result = await this.pool.query(
+      "SELECT * FROM hub_agents WHERE user_id = $1 ORDER BY created_at ASC",
+      [userId]
+    );
+    return result.rows.map((r) => this.mapHubAgent(r));
+  }
+
+  async createHubAgent(
+    userId: number,
+    name: string,
+    provider: string,
+    model: string,
+    apiKeyEnc: string,
+    baseUrl: string | null,
+    persona: string | null
+  ): Promise<HubAgent> {
+    const result = await this.pool.query(
+      "INSERT INTO hub_agents (user_id, name, provider, model, api_key_enc, base_url, persona) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *",
+      [userId, name, provider, model, apiKeyEnc, baseUrl, persona]
+    );
+    return this.mapHubAgent(result.rows[0]);
+  }
+
+  async deleteHubAgent(id: number, userId: number): Promise<void> {
+    await this.pool.query("DELETE FROM hub_agents WHERE id = $1 AND user_id = $2", [id, userId]);
+  }
+
+  private mapHubAgent(row: any): HubAgent {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      name: row.name,
+      provider: row.provider,
+      model: row.model,
+      apiKeyEnc: row.api_key_enc,
+      baseUrl: row.base_url ?? null,
+      persona: row.persona ?? null,
       createdAt: this.toIso(row.created_at),
     };
   }

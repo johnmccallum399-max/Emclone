@@ -43,6 +43,19 @@ export interface UserSettings {
   voiceMode: string;
 }
 
+export interface HubAgent {
+  id: number;
+  userId: number;
+  name: string;
+  provider: string;
+  model: string;
+  /** Encrypted API key — never returned to the client as plaintext. */
+  apiKeyEnc: string;
+  baseUrl: string | null;
+  persona: string | null;
+  createdAt: string;
+}
+
 export interface NewMessageInput {
   conversationId: number;
   role: MessageRole;
@@ -90,4 +103,17 @@ export interface DatabaseAdapter {
   setPersona(userId: number, persona: PersonaConfig): Promise<void>;
   setToolPermission(userId: number, tool: string, enabled: boolean): Promise<void>;
   setVoiceMode(userId: number, mode: string): Promise<void>;
+
+  // Orchestration Hub agents
+  listHubAgents(userId: number): Promise<HubAgent[]>;
+  createHubAgent(
+    userId: number,
+    name: string,
+    provider: string,
+    model: string,
+    apiKeyEnc: string,
+    baseUrl: string | null,
+    persona: string | null
+  ): Promise<HubAgent>;
+  deleteHubAgent(id: number, userId: number): Promise<void>;
 }
