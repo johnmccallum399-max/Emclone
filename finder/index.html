@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0c111d" />
+    <title>Device Finder</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Three.js resolved via import map so the jsm addons load cleanly. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>📍 Device Finder</h1>
+      <button id="enable-sensors" class="btn btn-accent" type="button">Enable compass</button>
+    </header>
+
+    <p id="status" class="status" role="status">Starting…</p>
+
+    <main class="layout">
+      <section class="stage">
+        <div id="scene" class="scene"></div>
+        <p id="no-webgl" class="no-webgl" hidden>
+          3D view unavailable (no WebGL) — the compass and readout below still work.
+        </p>
+
+        <!-- 2D compass overlay: works with or without WebGL. -->
+        <div class="compass" aria-hidden="true">
+          <div id="compass-dial" class="compass-dial">
+            <span class="tick tick-n">N</span>
+            <span class="tick tick-e">E</span>
+            <span class="tick tick-s">S</span>
+            <span class="tick tick-w">W</span>
+          </div>
+          <div id="compass-arrow" class="compass-arrow"></div>
+          <div class="compass-center"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="readout">
+          <h2 id="readout-name" class="readout-name">No device selected</h2>
+          <dl>
+            <div><dt>Distance</dt><dd id="readout-distance">—</dd></div>
+            <div><dt>Direction</dt><dd id="readout-direction">—</dd></div>
+            <div><dt>Turn</dt><dd id="readout-turn">—</dd></div>
+            <div><dt>Elevation</dt><dd id="readout-elevation">—</dd></div>
+          </dl>
+        </div>
+
+        <form id="device-form" class="device-form">
+          <h2>Add a device</h2>
+          <label>
+            Name
+            <input id="device-label" type="text" maxlength="32" placeholder="Pixel 8" autocomplete="off" />
+          </label>
+          <label>
+            Coordinates
+            <input
+              id="device-coords"
+              type="text"
+              required
+              placeholder="40.7128, -74.0060 or a Google Maps link"
+              autocomplete="off"
+            />
+          </label>
+          <p class="hint">
+            On Google Find Hub, open the device, tap its pin, and copy the
+            latitude/longitude (or paste the Google Maps share link).
+          </p>
+          <button class="btn btn-accent" type="submit">Add device</button>
+        </form>
+
+        <div class="devices">
+          <div class="devices-head">
+            <h2>Devices</h2>
+            <div class="devices-actions">
+              <button id="recenter" class="btn btn-ghost" type="button" title="Recenter & refresh elevation">↻ Refresh</button>
+              <button id="refresh-buildings" class="btn btn-ghost" type="button" title="Reload nearby buildings">🏙️ Buildings</button>
+            </div>
+          </div>
+          <ul id="device-list" class="device-list"></ul>
+        </div>
+      </section>
+    </main>
+
+    <script src="geo.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

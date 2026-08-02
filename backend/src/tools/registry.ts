@@ -1,5 +1,6 @@
 import { getDb } from "../db/index.js";
 import { calculatorTool } from "./calculator.js";
+import { elevationTool } from "./elevation.js";
 import { forgetTool, recallTool, rememberTool } from "./memory.js";
 import { placeholderApiTool } from "./placeholderApi.js";
 import type { ToolContext, ToolDefinition } from "./types.js";
@@ -16,6 +17,7 @@ export const ALL_TOOLS: ToolDefinition[] = [
   recallTool,
   forgetTool,
   calculatorTool,
+  elevationTool,
   placeholderApiTool,
 ];
 
