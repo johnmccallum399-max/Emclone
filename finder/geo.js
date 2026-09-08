@@ -172,3 +172,10 @@ const GEO = (() => {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = GEO;
 }
+
+// Expose to the browser. geo.js loads as a classic script, so its top-level
+// `const GEO` is not a property of `window`; app.js (an ES module) reads
+// `window.GEO`, so publish it explicitly here.
+if (typeof window !== "undefined") {
+  window.GEO = GEO;
+}
