@@ -121,6 +121,26 @@ describe("client-side tools", () => {
     expect(createCalls).toHaveLength(0);
   });
 
+  it("closes out unanswered client tool calls when the next message arrives", async () => {
+    scriptedStreams.push([
+      { choices: [{ delta: { tool_calls: [{ index: 0, id: "call_x", function: { name: "get_battery", arguments: "{}" } }] } }] },
+    ]);
+    await request(app)
+      .post(`/api/chat/conversations/${conversationId}/messages`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ message: "battery?", clientTools: [deviceTool] });
+
+    scriptedStreams.push([{ choices: [{ delta: { content: "ok" } }] }]);
+    await request(app)
+      .post(`/api/chat/conversations/${conversationId}/messages`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ message: "never mind" });
+
+    const roles = createCalls[1].messages.map((m: any) => m.role);
+    expect(roles).toEqual(["system", "user", "assistant", "tool", "user"]);
+    expect(createCalls[1].messages[3]).toMatchObject({ tool_call_id: "call_x" });
+  });
+
   it("does not let a client tool shadow a server tool", async () => {
     scriptedStreams.push([{ choices: [{ delta: { content: "ok" } }] }]);
     await request(app)

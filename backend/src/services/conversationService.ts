@@ -126,7 +126,19 @@ export async function* streamChatResponse(
   userMessage: string,
   options: ChatRequestOptions = {}
 ): AsyncGenerator<ChatStreamEvent> {
-  await getDb().addMessage({ conversationId, role: "user", content: userMessage });
+  const db = getDb();
+  // A previous turn may have paused on client tools that were never answered
+  // (app closed, user cancelled). Close them out so the history stays valid.
+  for (const call of findPendingToolCalls(await db.getMessages(conversationId, HISTORY_LIMIT))) {
+    await db.addMessage({
+      conversationId,
+      role: "tool",
+      content: "Error: cancelled before the device returned a result.",
+      toolCallId: call.id,
+      name: call.function.name,
+    });
+  }
+  await db.addMessage({ conversationId, role: "user", content: userMessage });
   yield* runModelLoop(userId, conversationId, options);
 }
 
