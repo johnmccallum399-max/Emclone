@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Oak-leaf-ish chevron mark, monochrome so it works as a tile/notification icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2L3,7v2l9,-5 9,5V7L12,2zM12,8l-9,5v2l9,-5 9,5v-2L12,8zM12,14l-6,3.3V22l6,-3.3 6,3.3v-4.7L12,14z" />
+</vector>
