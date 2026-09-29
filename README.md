@@ -29,6 +29,9 @@ conversation, web access, tool calling, and persistent memory.
   - `web_search` – Tavily (if configured) or free DuckDuckGo fallback.
   - `remember` / `recall` / `forget` – long-term per-user key/value memory.
   - `calculator` – safe math evaluation via `mathjs`.
+  - `elevation` – ground elevation (metres/feet above sea level) for one or
+    more coordinates, e.g. a device located on Google Find Hub. Keyless
+    (Open-Meteo) by default.
   - `placeholder_api` – template for wiring up your own external API.
 - 🧠 **Memory**: short-term (recent conversation history) + long-term
   (persisted facts injected into the system prompt).

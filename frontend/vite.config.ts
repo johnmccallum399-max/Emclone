@@ -27,7 +27,9 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          navigateFallbackDenylist: [/^\/api\//],
+          // Keep /api and the standalone /finder app out of the SPA fallback so
+          // requests there hit the network/static files, not index.html.
+          navigateFallbackDenylist: [/^\/api\//, /^\/finder/],
         },
       }),
     ],

@@ -24,6 +24,11 @@ const envSchema = z.object({
   TAVILY_API_KEY: z.string().optional(),
   PLACEHOLDER_API_URL: z.string().optional(),
 
+  // Elevation tool. Defaults to the free, keyless Open-Meteo elevation API,
+  // which accepts comma-separated latitude/longitude lists and returns an
+  // `elevation` array (meters). Override to point at a compatible service.
+  ELEVATION_API_URL: z.string().url().default("https://api.open-meteo.com/v1/elevation"),
+
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(60),
 
