@@ -59,5 +59,13 @@ Things we should have weighed before writing them:
 
 - Do any subscription aggregators offer real model-to-model relay? Not
   confirmed either way.
-- Does the user mean API keys or consumer subscriptions (ChatGPT Plus,
-  Claude Pro)? Consumer plans have no API access, so the hub can't drive them.
+- **Resolved:** the user meant consumer subscriptions (ChatGPT, Claude, Gemini
+  plans) talking freely, not API keys. Consumer plans have no API access, so
+  the shipped hub does not cover that. Candidate paths, none verified:
+  1. Drive each vendor's own CLI (Claude Code, Codex CLI, Gemini CLI), which
+     can sign in with a subscription, from the hub as a new provider type.
+     Must run on a machine where those CLIs are logged in, not on Render.
+     Check each vendor's current terms for automated or third-party use.
+  2. Cheap or free API tiers, if the goal is cost rather than the account.
+  3. Automating the consumer web UIs. Likely against vendor terms and fragile.
+     Not recommended.

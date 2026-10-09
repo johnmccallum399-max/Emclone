@@ -22,6 +22,10 @@ teaches us something, add a rule here with the incident that earned it.
 2. **Surface assumptions before coding.** State the two or three riskiest
    assumptions in one message and let the user correct them (auth and billing
    model, deploy target, base branch). Don't bury them in the summary.
+   *Incident:* "my LLM accounts" meant consumer subscriptions (ChatGPT, Claude,
+   Gemini plans), and the hub was built on pay-per-token API keys instead. When
+   a request names a vendor product or account type, ask which access path
+   (API, subscription, CLI, browser) the user means before designing.
 3. **Load the relevant skill first** when writing against a provider API
    (e.g. `claude-api` for Anthropic). Don't hard-code model names from memory.
 
