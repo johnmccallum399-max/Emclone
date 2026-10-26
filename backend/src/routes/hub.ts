@@ -2,6 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { getDb } from "../db/index.js";
 import type { HubAgent } from "../db/types.js";
+import { env } from "../config/env.js";
+import { CLI_MODEL_HELP, isValidCliModel } from "../hub/cliRunner.js";
 import { isSessionRunning, requestStop, runHubSession } from "../hub/orchestrator.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
@@ -27,20 +29,31 @@ function toPublicAgent(agent: HubAgent) {
 
 // ---- Agents ---------------------------------------------------------------
 
-const providerSchema = z.enum(["openai", "anthropic", "google", "openai_compatible"]);
+const providerSchema = z.enum(["openai", "anthropic", "google", "openai_compatible", "cli"]);
 
-const createAgentSchema = z
-  .object({
-    name: z.string().min(1).max(80),
-    provider: providerSchema,
-    model: z.string().min(1).max(120),
-    apiKey: z.string().min(1).max(500),
-    baseUrl: z.string().url().max(500).nullish(),
-    systemPrompt: z.string().max(8000).optional(),
-  })
-  .refine((data) => data.provider !== "openai_compatible" || Boolean(data.baseUrl), {
-    message: "baseUrl is required for openai_compatible providers",
-  });
+/** Cross-field rules shared by create and update, checked on the effective values. */
+function assertAgentConfig(config: { provider: string; model: string; apiKey?: string; baseUrl?: string | null; hasStoredKey?: boolean }) {
+  if (config.provider === "cli") {
+    if (!env.HUB_ENABLE_CLI_AGENTS) {
+      throw new HttpError(400, "CLI agents are disabled. Set HUB_ENABLE_CLI_AGENTS=true in the backend environment (local use only).");
+    }
+    if (!isValidCliModel(config.model)) throw new HttpError(400, CLI_MODEL_HELP);
+    return;
+  }
+  if (!config.apiKey && !config.hasStoredKey) throw new HttpError(400, "apiKey is required for this provider");
+  if (config.provider === "openai_compatible" && !config.baseUrl) {
+    throw new HttpError(400, "baseUrl is required for openai_compatible providers");
+  }
+}
+
+const createAgentSchema = z.object({
+  name: z.string().min(1).max(80),
+  provider: providerSchema,
+  model: z.string().min(1).max(120),
+  apiKey: z.string().min(1).max(500).optional(),
+  baseUrl: z.string().url().max(500).nullish(),
+  systemPrompt: z.string().max(8000).optional(),
+});
 
 hubRouter.get(
   "/agents",
@@ -55,14 +68,17 @@ hubRouter.post(
   asyncHandler(async (req, res) => {
     const parsed = createAgentSchema.safeParse(req.body);
     if (!parsed.success) throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid agent");
+    assertAgentConfig(parsed.data);
 
+    const isCli = parsed.data.provider === "cli";
     const agent = await getDb().createHubAgent({
       userId: req.userId!,
       name: parsed.data.name,
       provider: parsed.data.provider,
       model: parsed.data.model,
-      apiKeySealed: sealSecret(parsed.data.apiKey),
-      baseUrl: parsed.data.baseUrl ?? null,
+      // The column is NOT NULL; CLI agents authenticate through the CLI's own login.
+      apiKeySealed: sealSecret(isCli ? "n/a" : parsed.data.apiKey!),
+      baseUrl: isCli ? null : (parsed.data.baseUrl ?? null),
       systemPrompt: parsed.data.systemPrompt ?? "",
     });
     res.status(201).json({ agent: toPublicAgent(agent) });
@@ -84,6 +100,17 @@ hubRouter.patch(
     const id = Number(req.params.id);
     const parsed = updateAgentSchema.safeParse(req.body);
     if (!parsed.success) throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid agent");
+
+    const existing = await getDb().getHubAgent(id, req.userId!);
+    if (!existing) throw new HttpError(404, "Agent not found");
+    assertAgentConfig({
+      provider: parsed.data.provider ?? existing.provider,
+      model: parsed.data.model ?? existing.model,
+      apiKey: parsed.data.apiKey,
+      baseUrl: parsed.data.baseUrl === undefined ? existing.baseUrl : parsed.data.baseUrl,
+      // A stored key only counts if the existing agent was not a CLI agent (whose key is a placeholder).
+      hasStoredKey: existing.provider !== "cli",
+    });
 
     const agent = await getDb().updateHubAgent(id, req.userId!, {
       name: parsed.data.name,

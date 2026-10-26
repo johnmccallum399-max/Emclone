@@ -236,7 +236,8 @@ export async function* runHubSession(userId: number, sessionId: number): AsyncGe
       }
     }
 
-    if (!stopped && session.synthesize) {
+    // With a single participant the synthesis would only repeat its own answer.
+    if (!stopped && session.synthesize && agents.length > 1) {
       const synthesizer = agents[0];
       const round = startRound + session.maxRounds;
       yield { type: "turn_start", agentId: synthesizer.id, agentName: synthesizer.name, round };
