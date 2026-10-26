@@ -258,7 +258,13 @@ export async function runCli(invocation: CliInvocation, input: string, options: 
       child.stdin.end(input);
     });
   } finally {
-    fs.rmSync(workDir, { recursive: true, force: true });
+    // On Windows a just-killed child can hold its working directory for a moment (EBUSY).
+    // Cleanup is best-effort: retry briefly, and never let it replace the real result or error.
+    try {
+      fs.rmSync(workDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    } catch {
+      // A leftover empty temp folder is harmless; the OS temp cleaner will remove it.
+    }
   }
 }
 
