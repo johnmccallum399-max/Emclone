@@ -26,33 +26,40 @@ teaches us something, add a rule here with the incident that earned it.
    Gemini plans), and the hub was built on pay-per-token API keys instead. When
    a request names a vendor product or account type, ask which access path
    (API, subscription, CLI, browser) the user means before designing.
-3. **Load the relevant skill first** when writing against a provider API
+3. **Read the vendor's current terms before automating a consumer account.**
+   Quote the relevant clauses in the prior-art doc; if a page can't be fetched,
+   say so and don't assume it's allowed.
+4. **Load the relevant skill first** when writing against a provider API
    (e.g. `claude-api` for Anthropic). Don't hard-code model names from memory.
 
 ## While building
 
-4. **Match the codebase.** Read the existing patterns first and follow them
+5. **Match the codebase.** Read the existing patterns first and follow them
    (DatabaseAdapter, router and `asyncHandler` style, SSE helpers).
-5. **Test the core logic first**, using a mocked `fetch` where needed.
+6. **Test the core logic first**, using a mocked `fetch` where needed.
    Peripheral code (storage, helpers) is not a substitute.
-6. **Anything long-running must survive restarts.** Persist its state and
+7. **Anything long-running must survive restarts.** Persist its state and
    reconcile it on boot (e.g. reset sessions stuck in `running`).
-7. **Anything that calls paid APIs needs a cost and limits review**: token or
+8. **Anything that calls paid APIs needs a cost and limits review**: token or
    spend caps, bounded rounds, bounded context growth.
-8. **Validate user-supplied URLs** that the server will fetch.
+9. **Validate user-supplied URLs** that the server will fetch.
 
 ## Before merging
 
-9. **CI must run tests and gate merges.** A preview deploy is not a test.
-10. **Report verification honestly.** Say what was exercised and what was not.
+10. **CI must run tests and gate merges.** A preview deploy is not a test.
+11. **Report verification honestly.** Say what was exercised and what was not.
     "Tests pass" is only true for the code the tests cover.
-11. Ask about the base branch and deploy target up front rather than guessing.
+12. Ask about the base branch and deploy target up front rather than guessing.
 
 ## Known open items (Orchestration Hub)
 
 - Sessions can stay stuck on "Running" after a backend restart (the running
   flag is in memory; the database status is never reconciled).
 - No token or spend cap on hub runs; each turn resends up to 30k characters.
-- Orchestrator, provider clients, routes and UI have no tests.
+- The orchestrator, the API provider clients (OpenAI, Anthropic, Google) and the
+  UI still have no tests. Only the storage, CLI runner and agent routes do.
 - Model-name placeholders in the agent form are likely stale.
+- CLI agents (subscription logins, local only) are tested with fake CLIs only; the
+  real `claude`, `codex` and `gemini` flags and the Antigravity replacement for
+  Gemini are unverified.
 - Prior-art review for the hub: `docs/prior-art/orchestration-hub.md`.

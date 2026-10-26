@@ -218,6 +218,7 @@ The hub lets your different LLM accounts collaborate autonomously. Open
    | Anthropic (Claude) | `claude-sonnet-4-5`, ... |
    | Google (Gemini) | `gemini-2.5-flash`, ... |
    | OpenAI-compatible | Anything speaking the OpenAI chat-completions API — Grok/xAI, Mistral, Groq, OpenRouter, DeepSeek, local Ollama, ... Requires a base URL (e.g. `https://api.x.ai/v1`). |
+   | Local CLI | Runs the Claude Code, Codex or Gemini CLI installed on this computer, using the login you already made there. See "Using your subscriptions" below. |
 
    Agent API keys are encrypted at rest (AES-256-GCM, key derived from
    `JWT_SECRET`) and are never sent to the browser. Note: rotating
@@ -239,6 +240,33 @@ The hub lets your different LLM accounts collaborate autonomously. Open
 4. **Interject & continue** — between runs you can add your own guidance to
    the transcript and press *Continue* for more rounds; agents see your notes
    as `[User]` messages.
+
+### Using your subscriptions (local only)
+
+ChatGPT, Claude and Gemini subscriptions do not include API access, so agents
+backed by them run through each vendor's own command-line tool:
+
+1. Install the CLI(s) on your computer and sign in the normal way (`claude`,
+   `codex`, `gemini`).
+2. In `backend/.env` set `HUB_ENABLE_CLI_AGENTS=true` and run the backend on that
+   same computer (not on Render or any shared host).
+3. Add an agent with provider **Local CLI** and model `claude`, `codex` or
+   `gemini`, optionally with a model name (`claude:opus`).
+
+Safeguards: only those three tools can be launched (never a user-supplied
+command), with no shell; each turn runs in an empty temporary folder; and the
+CLI is given a scrubbed environment so API-key variables are not inherited,
+because the CLIs prefer an API key over your subscription login and would
+silently bill you per token. Each turn is a fresh one-shot call, so a session of
+8 agents and 10 rounds is 80 CLI calls drawn from your subscription limits.
+
+**Not verified:** the CLI flags have not been run against signed-in CLIs, and
+Google replaced Gemini CLI with Antigravity CLI for Google One users on
+2026-06-18, so the `gemini` preset may not work for a personal subscription.
+Anthropic's terms say plan limits assume ordinary individual use and that
+developers may not route other people's requests through plan credentials. This
+feature is for your own use on your own machine; do not share or host it. See
+`docs/prior-art/orchestration-hub.md` for the sourced details.
 
 Transcripts persist in the database, so sessions can be revisited and
 continued any time. If one agent's provider errors mid-round (bad key, rate

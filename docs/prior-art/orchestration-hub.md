@@ -69,3 +69,40 @@ Things we should have weighed before writing them:
   2. Cheap or free API tiers, if the goal is cost rather than the account.
   3. Automating the consumer web UIs. Likely against vendor terms and fragile.
      Not recommended.
+
+## Vendor terms check (2026-10-26)
+
+Fetched from vendor pages where reachable. This is not legal advice; read the
+linked pages yourself.
+
+**Anthropic (Claude Code), verified from the page.** Source:
+https://code.claude.com/docs/en/legal-and-compliance
+- OAuth login "is intended exclusively for purchasers of Claude Free, Pro, Max,
+  Team, and Enterprise subscription plans and is designed to support ordinary
+  use of Claude Code".
+- "Advertised usage limits for Pro and Max plans assume ordinary, individual
+  usage of Claude Code and the Agent SDK."
+- Developers building products "should use API key authentication"; Anthropic
+  "does not permit third-party developers ... to route requests through Free,
+  Pro, or Max plan credentials on behalf of their users", and developers "may
+  not collect, store, or intermediate Claude.ai credentials or session tokens".
+- It does not prevent "an end user from signing in to the unmodified Claude Code
+  binary with their own Claude subscription".
+- Reading: running the real `claude` binary yourself on your own machine for
+  your own use fits. Hosting it for others, or on a server with a copied token,
+  does not. Heavy multi-agent loops may exceed "ordinary, individual usage".
+
+**OpenAI (Codex CLI), not verified.** The official auth pages
+(learn.chatgpt.com, developers.openai.com) could not be reached from the build
+environment. Secondary sources describe copying `~/.codex/auth.json` and
+device-code login for remote machines and say to treat the file like a password.
+No terms on automation were found. Read OpenAI's terms before relying on it.
+
+**Google (Gemini CLI), partly verified.** The Gemini CLI README states: "Unpaid
+tier and Google One users: Gemini CLI was replaced by Antigravity CLI on June
+18th, 2026." The terms page could not be reached. Antigravity CLI's headless
+interface was not researched, so the `gemini` preset may not work for a personal
+Google subscription.
+
+**Decision.** Local, single-user, off by default (`HUB_ENABLE_CLI_AGENTS`).
+Not for hosting or sharing. Hosted use would need API keys.

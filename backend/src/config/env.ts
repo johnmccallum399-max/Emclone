@@ -21,6 +21,14 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   SQLITE_PATH: z.string().default("./data/app.db"),
 
+  // Lets hub agents run local vendor CLIs signed in with the user's own
+  // subscription. Off by default: only enable on a machine you control.
+  HUB_ENABLE_CLI_AGENTS: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  HUB_CLI_TIMEOUT_MS: z.coerce.number().int().positive().default(300000),
+
   TAVILY_API_KEY: z.string().optional(),
   PLACEHOLDER_API_URL: z.string().optional(),
 
