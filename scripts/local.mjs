@@ -68,19 +68,26 @@ if (!fs.existsSync(envFile)) {
   fs.writeFileSync(envFile, lines.join("\n"), { mode: 0o600 });
 }
 
-// 2. Install dependencies and build when missing (or when --rebuild is passed).
+// 2. Install dependencies and build only when missing (or when --rebuild is passed).
+// A downloaded bundle ships with both already done, so it needs no npm at all.
 const rebuild = args.has("--rebuild");
-for (const [name, dir] of [["backend", backendDir], ["frontend", frontendDir]]) {
-  if (rebuild || !fs.existsSync(path.join(dir, "node_modules"))) {
-    step(`Installing ${name} dependencies`);
-    run("npm", ["ci", "--no-audit", "--no-fund"], dir);
-  }
+const needsBackendBuild = rebuild || !fs.existsSync(path.join(backendDir, "dist", "index.js"));
+const needsFrontendBuild = rebuild || !fs.existsSync(path.join(frontendDir, "dist", "index.html"));
+
+// The backend needs its dependencies to run; the frontend only needs them to build.
+if (rebuild || !fs.existsSync(path.join(backendDir, "node_modules"))) {
+  step("Installing backend dependencies");
+  run("npm", ["ci", "--no-audit", "--no-fund"], backendDir);
 }
-if (rebuild || !fs.existsSync(path.join(backendDir, "dist", "index.js"))) {
+if (needsFrontendBuild && (rebuild || !fs.existsSync(path.join(frontendDir, "node_modules")))) {
+  step("Installing frontend dependencies");
+  run("npm", ["ci", "--no-audit", "--no-fund"], frontendDir);
+}
+if (needsBackendBuild) {
   step("Building backend");
   run("npm", ["run", "build"], backendDir);
 }
-if (rebuild || !fs.existsSync(path.join(frontendDir, "dist", "index.html"))) {
+if (needsFrontendBuild) {
   step("Building frontend");
   run("npm", ["run", "build"], frontendDir);
 }

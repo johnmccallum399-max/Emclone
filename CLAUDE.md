@@ -64,7 +64,10 @@ teaches us something, add a rule here with the incident that earned it.
   end once, in the build container (it authenticated through that container's own
   login, not a user subscription). The `codex` and `gemini` flags, and the
   Antigravity replacement for Gemini, are unverified.
-- No single-file installer or phone app for the Hub yet (see the packaging notes
-  in the prior-art doc). `scripts/local.mjs` was tested on Linux only; the
-  Windows and macOS wrappers are untested.
+- Portable bundles (Windows zip, Linux tar.gz) are built and smoke-tested in CI;
+  see `.github/workflows/hub.yml`. The Linux bundle was also run locally with no
+  system Node. The Windows bundle has never been run on a real Windows 10
+  machine, only on a CI runner. No macOS bundle, no signed installer.
+- The tablet path (Tailscale plus an installed web app) is documented but untested.
+  The Android app has no Hub screens.
 - Prior-art review for the hub: `docs/prior-art/orchestration-hub.md`.

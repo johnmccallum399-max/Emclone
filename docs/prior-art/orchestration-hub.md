@@ -121,6 +121,25 @@ as unverified until checked. No installer has been built.
 | Android app | Remote control from the phone | Phones cannot run the vendor CLIs, so it can only talk to the Hub on the computer. The existing LCDR app would need new Hub screens in Kotlin |
 | Installable web app (PWA) | Already built into the frontend | Installing needs HTTPS; plain LAN HTTP gives only a bookmark. Tailscale can provide HTTPS |
 
-**Decision.** Ship the launcher now. Build installers or Hub screens in the
-Android app only if the launcher proves too much friction; both are real work
-and the first needs the user's operating system.
+**Decision (updated).** Portable bundles instead of an installer: a zip for
+Windows 10 and a tar.gz for Linux, each carrying its own Node and dependencies,
+built and smoke-tested by `.github/workflows/hub.yml`. No Electron, no installer,
+no code signing. The tablet uses the installed web app over Tailscale rather
+than a new Android app, because the Hub cannot run on the tablet anyway.
+
+Checked while building (sources from search results; not all confirmed):
+- Tailscale Serve proxies a local port to an HTTPS address reachable only on the
+  tailnet, and needs MagicDNS and HTTPS certificates enabled. Command syntax
+  changed in Tailscale 1.52.
+- Since the CVE-2024-27980 fix, Node throws EINVAL when spawning `.cmd` or `.bat`
+  files without a shell
+  (https://nodejs.org/en/blog/vulnerability/april-2024-security-releases-2).
+  npm-installed CLIs on Windows are `.cmd` shims, so the CLI runner resolves them
+  and goes through `cmd.exe` with a fixed, metacharacter-checked command line.
+  The inference that the real `claude`, `codex` and `gemini` shims are `.cmd`
+  files was not confirmed; the CI smoke test uses a `.cmd` stand-in.
+- better-sqlite3's glibc floor was not documented in what I found. Measured on
+  the prebuilt binary: needs glibc 2.29 at most, and Node 22 needs 2.28. CI fails
+  the build if either exceeds 2.35 (Zorin OS 17), which would happen if the module
+  were compiled on the runner instead of downloaded.
+- Zorin OS 18 being based on Ubuntu 24.04 (glibc 2.39) is from memory, not checked.

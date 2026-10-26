@@ -25,7 +25,16 @@ export function createApp(): Express {
   // Use `true` (reflect request origin) to make "*" behave as a real wildcard.
   const corsOrigin = allowedOrigins.includes("*") ? true : allowedOrigins;
 
-  app.use(helmet());
+  // When this server also serves the web app (local mode), it is often reached over plain
+  // HTTP on a LAN address, and the default "upgrade-insecure-requests" directive makes the
+  // browser rewrite every asset request to HTTPS, which fails and leaves a blank page.
+  app.use(
+    helmet(
+      env.FRONTEND_DIST
+        ? { contentSecurityPolicy: { useDefaults: true, directives: { "upgrade-insecure-requests": null } } }
+        : undefined
+    )
+  );
   app.use(
     cors({
       origin: corsOrigin,

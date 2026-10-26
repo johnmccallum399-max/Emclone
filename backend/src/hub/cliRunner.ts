@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -71,6 +71,8 @@ export function isValidCliModel(model: string): boolean {
 export interface CliInvocation {
   bin: string;
   args: string[];
+  /** Pass args to the OS exactly as given (needed to run .cmd shims through cmd.exe on Windows). */
+  verbatim?: boolean;
 }
 
 export function buildCliInvocation(model: string): CliInvocation {
@@ -98,6 +100,18 @@ const ENV_ALLOWLIST = [
   "LOCALAPPDATA",
   "USERPROFILE",
   "SystemRoot",
+  "SystemDrive",
+  "windir",
+  "ComSpec",
+  "PATHEXT",
+  "TEMP",
+  "TMP",
+  "USERNAME",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "ProgramData",
+  "ProgramFiles",
+  "ProgramFiles(x86)",
   "HTTPS_PROXY",
   "HTTP_PROXY",
   "NO_PROXY",
@@ -113,6 +127,53 @@ function scrubbedEnv(): NodeJS.ProcessEnv {
 
 /** Hard cap on captured output so a runaway CLI cannot exhaust memory. */
 const MAX_OUTPUT_BYTES = 1_000_000;
+
+/** Characters cmd.exe would interpret; none can appear in a preset argument or a resolved path we accept. */
+const CMD_METACHARACTERS = /[&|<>^%"\r\n!]/;
+
+function quoteForCmd(value: string): string {
+  if (CMD_METACHARACTERS.test(value)) {
+    throw new Error(`Refusing to pass "${value}" through cmd.exe: it contains a shell metacharacter.`);
+  }
+  return /\s/.test(value) ? `"${value}"` : value;
+}
+
+/**
+ * Current Node refuses to spawn .cmd/.bat files without a shell (CVE-2024-27980
+ * fix), and npm-installed CLIs on Windows are .cmd shims. This builds the
+ * `cmd.exe /d /s /c ""shim" args"` form. Arguments here only ever come from
+ * CLI_PRESETS and the regex-validated model name, and anything containing a
+ * cmd metacharacter is rejected rather than escaped.
+ */
+export function buildWindowsShimInvocation(shimPath: string, args: string[]): CliInvocation {
+  const line = [shimPath, ...args].map(quoteForCmd).join(" ");
+  return { bin: "cmd.exe", args: ["/d", "/s", "/c", `"${line}"`], verbatim: true };
+}
+
+/** Picks the runnable file for `bin` from `where` output: .exe/.com first, then .cmd/.bat. */
+export function pickWindowsExecutable(whereOutput: string): string | null {
+  const candidates = whereOutput
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const ext = (file: string) => path.extname(file).toLowerCase();
+  return (
+    candidates.find((file) => ext(file) === ".exe" || ext(file) === ".com") ??
+    candidates.find((file) => ext(file) === ".cmd" || ext(file) === ".bat") ??
+    null
+  );
+}
+
+/** On Windows, finds the real file behind a bare command name; elsewhere returns the invocation unchanged. */
+export function resolveInvocation(invocation: CliInvocation, platform: NodeJS.Platform = process.platform): CliInvocation {
+  if (platform !== "win32") return invocation;
+  const found = spawnSync("where", [invocation.bin], { encoding: "utf8", env: scrubbedEnv() });
+  const resolved = found.status === 0 ? pickWindowsExecutable(found.stdout) : null;
+  if (!resolved) return invocation;
+  const extension = path.extname(resolved).toLowerCase();
+  if (extension === ".cmd" || extension === ".bat") return buildWindowsShimInvocation(resolved, invocation.args);
+  return { ...invocation, bin: resolved };
+}
 
 export interface RunCliOptions {
   timeoutMs: number;
@@ -135,6 +196,7 @@ export async function runCli(invocation: CliInvocation, input: string, options: 
         env: options.env ?? scrubbedEnv(),
         stdio: ["pipe", "pipe", "pipe"],
         shell: false,
+        windowsVerbatimArguments: invocation.verbatim === true,
       });
 
       let stdout = "";
@@ -205,7 +267,7 @@ export async function completeWithCli(model: string, turn: { system: string; pro
   if (!env.HUB_ENABLE_CLI_AGENTS) {
     throw new Error("CLI agents are disabled. Set HUB_ENABLE_CLI_AGENTS=true in the backend environment (local use only).");
   }
-  const invocation = buildCliInvocation(model);
+  const invocation = resolveInvocation(buildCliInvocation(model));
   const input = `${turn.system}\n\n${turn.prompt}`;
   return runCli(invocation, input, { timeoutMs: env.HUB_CLI_TIMEOUT_MS });
 }

@@ -6,7 +6,15 @@ import { env } from "../src/config/env.js";
 import { setDb } from "../src/db/index.js";
 import { SqliteAdapter } from "../src/db/sqlite.js";
 import type { HubAgent } from "../src/db/types.js";
-import { buildCliInvocation, completeWithCli, isValidCliModel, runCli } from "../src/hub/cliRunner.js";
+import {
+  buildCliInvocation,
+  buildWindowsShimInvocation,
+  completeWithCli,
+  isValidCliModel,
+  pickWindowsExecutable,
+  resolveInvocation,
+  runCli,
+} from "../src/hub/cliRunner.js";
 import { completeChat } from "../src/hub/providers.js";
 import { ensureSeedUser } from "../src/services/bootstrap.js";
 
@@ -93,6 +101,44 @@ describe("cli presets", () => {
     expect(buildCliInvocation("codex").args.at(-1)).toBe("-");
     expect(buildCliInvocation("gemini:x").args).toContain("-m");
     expect(() => buildCliInvocation("bash")).toThrow();
+  });
+});
+
+describe("windows command resolution", () => {
+  it("wraps a .cmd shim for cmd.exe, quoting paths and arguments with spaces", () => {
+    const invocation = buildWindowsShimInvocation("C:\\Users\\Jo Smith\\AppData\\Roaming\\npm\\gemini.cmd", [
+      "-p",
+      "Follow the instructions provided on stdin.",
+      "-m",
+      "2.5-pro",
+    ]);
+    expect(invocation.bin).toBe("cmd.exe");
+    expect(invocation.verbatim).toBe(true);
+    expect(invocation.args).toEqual([
+      "/d",
+      "/s",
+      "/c",
+      '""C:\\Users\\Jo Smith\\AppData\\Roaming\\npm\\gemini.cmd" -p "Follow the instructions provided on stdin." -m 2.5-pro"',
+    ]);
+  });
+
+  it("refuses arguments or paths containing cmd metacharacters", () => {
+    expect(() => buildWindowsShimInvocation("C:\\npm\\claude.cmd", ["-p", "a&calc"])).toThrow(/metacharacter/);
+    expect(() => buildWindowsShimInvocation("C:\\x%PATH%\\claude.cmd", ["-p"])).toThrow(/metacharacter/);
+  });
+
+  it("prefers a real executable, then a .cmd shim, and ignores extensionless shell scripts", () => {
+    const where = "C:\\npm\\claude\r\nC:\\npm\\claude.cmd\r\nC:\\Tools\\claude.exe\r\n";
+    expect(pickWindowsExecutable(where)).toBe("C:\\Tools\\claude.exe");
+    expect(pickWindowsExecutable("C:\\npm\\claude\r\nC:\\npm\\claude.cmd\r\n")).toBe("C:\\npm\\claude.cmd");
+    expect(pickWindowsExecutable("C:\\npm\\claude\r\n")).toBeNull();
+    expect(pickWindowsExecutable("")).toBeNull();
+  });
+
+  it("leaves invocations untouched on other platforms", () => {
+    const invocation = { bin: "claude", args: ["-p"] };
+    expect(resolveInvocation(invocation, "linux")).toBe(invocation);
+    expect(resolveInvocation(invocation, "darwin")).toBe(invocation);
   });
 });
 

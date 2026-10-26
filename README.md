@@ -113,16 +113,42 @@ because it is local-only; the hosted deployment leaves them off.
 Chat and voice still need a real `OPENAI_API_KEY` in `backend/.env`; the
 launcher writes a placeholder because the Hub does not use it.
 
-**Phone.** Subscription agents run vendor CLIs, which only exist on a computer,
-so the Hub itself has to stay on the computer. A phone can only be a remote
-control for it, reached over the same Wi-Fi (`--lan`) or a private network such
-as Tailscale. Open the address in the phone browser. Installing it as an app
-needs HTTPS, so over plain Wi-Fi you get a browser bookmark, not an installed
-app. The Android app in `android/` has no Hub screens yet.
+### Download a ready-made bundle (no Node.js needed)
 
-**Not a single downloadable file yet.** This needs Node installed. A true
-installer or `.exe` is a separate packaging step; see
-`docs/prior-art/orchestration-hub.md`.
+Every push that touches the app runs the **Hub tests and bundles** GitHub Actions
+workflow. Open the run page and download the artifact for your system, then
+unpack it anywhere:
+
+| System | Artifact | Start it |
+| --- | --- | --- |
+| Windows 10 | `ai-hub-windows` (a zip) | double-click `start-hub.bat`. Windows may say "Windows protected your PC" because the files are not code-signed: choose More info, then Run anyway. |
+| Linux (Zorin, Ubuntu) | `ai-hub-linux` (a tar.gz) | `./start-hub.sh` in a terminal; `./add-to-menu.sh` adds an applications-menu entry |
+
+The bundle carries its own copy of Node and every dependency. The workflow runs
+the tests on both systems and then starts each bundle and drives a full session
+through a stand-in CLI before it uploads, so a bundle that does not start never
+gets published. To update, unpack the new version and copy `backend/.env` and
+`backend/data` from the old one. GitHub keeps artifacts for a limited time, so
+download the one you want to keep.
+
+### Tablet or phone
+
+Subscription agents run vendor CLIs, which only exist on a computer, so the Hub
+itself stays on the computer and a tablet is a remote control for it. Two ways:
+
+- **Same Wi-Fi.** Start with `--lan` and open the address it prints in the
+  tablet's browser. Plain HTTP gives a browser bookmark, not an installed app, and
+  anyone on that network can reach the login page.
+- **Tailscale (for an installable app).** Install [Tailscale](https://tailscale.com)
+  on the computer and the tablet, sign in to the same account, make sure MagicDNS and
+  HTTPS certificates are on in the admin console, then on the computer run
+  `tailscale serve --bg 4000` (the command's syntax has changed between versions;
+  check `tailscale serve --help`). Open the `https://…ts.net` address in the tablet's
+  Chrome and choose Install app. Only your own devices can reach it, and it works only
+  while the computer is on and the Hub is running. Not tested by the author.
+
+The Android app in `android/` has no Hub screens, so for now the installed web
+app is the way to use the Hub from a tablet.
 
 ## Running locally (without Docker)
 
