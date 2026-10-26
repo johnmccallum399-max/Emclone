@@ -56,10 +56,15 @@ teaches us something, add a rule here with the incident that earned it.
 - Sessions can stay stuck on "Running" after a backend restart (the running
   flag is in memory; the database status is never reconciled).
 - No token or spend cap on hub runs; each turn resends up to 30k characters.
-- The orchestrator, the API provider clients (OpenAI, Anthropic, Google) and the
-  UI still have no tests. Only the storage, CLI runner and agent routes do.
+- The API provider clients (OpenAI, Anthropic, Google) and the UI still have no
+  tests. The storage, orchestrator (with a mocked provider), CLI runner and agent
+  routes do.
 - Model-name placeholders in the agent form are likely stale.
-- CLI agents (subscription logins, local only) are tested with fake CLIs only; the
-  real `claude`, `codex` and `gemini` flags and the Antigravity replacement for
-  Gemini are unverified.
+- CLI agents (subscription logins, local only): the `claude` preset was run end to
+  end once, in the build container (it authenticated through that container's own
+  login, not a user subscription). The `codex` and `gemini` flags, and the
+  Antigravity replacement for Gemini, are unverified.
+- No single-file installer or phone app for the Hub yet (see the packaging notes
+  in the prior-art doc). `scripts/local.mjs` was tested on Linux only; the
+  Windows and macOS wrappers are untested.
 - Prior-art review for the hub: `docs/prior-art/orchestration-hub.md`.

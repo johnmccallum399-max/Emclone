@@ -88,6 +88,42 @@ conversation, web access, tool calling, and persistent memory.
 
 ---
 
+## Run it on your computer (one command)
+
+Needs [Node.js 20+](https://nodejs.org). Then, from the repo folder:
+
+| System | Do this |
+| --- | --- |
+| Windows | double-click `start-hub.bat` (or run it in a terminal) |
+| macOS | double-click `start-hub.command` (first time: right-click, Open) |
+| Linux | `./start-hub.sh` |
+| Any | `node scripts/local.mjs` |
+
+The first run installs dependencies, builds the app, creates `backend/.env` with
+a generated secret and password, starts everything on `http://localhost:4000`
+and opens your browser. The login is printed once and saved in `backend/.env`.
+Later runs start in a few seconds. Add `--rebuild` after pulling new code.
+
+It listens only on your own computer by default. `--lan` also listens on your
+network so a phone on the same Wi-Fi can open it; anyone on that network could
+then reach the login page, so use a strong password and only on a network you
+trust. The CLI agents (see Orchestration Hub) are switched on by this launcher
+because it is local-only; the hosted deployment leaves them off.
+
+Chat and voice still need a real `OPENAI_API_KEY` in `backend/.env`; the
+launcher writes a placeholder because the Hub does not use it.
+
+**Phone.** Subscription agents run vendor CLIs, which only exist on a computer,
+so the Hub itself has to stay on the computer. A phone can only be a remote
+control for it, reached over the same Wi-Fi (`--lan`) or a private network such
+as Tailscale. Open the address in the phone browser. Installing it as an app
+needs HTTPS, so over plain Wi-Fi you get a browser bookmark, not an installed
+app. The Android app in `android/` has no Hub screens yet.
+
+**Not a single downloadable file yet.** This needs Node installed. A true
+installer or `.exe` is a separate packaging step; see
+`docs/prior-art/orchestration-hub.md`.
+
 ## Running locally (without Docker)
 
 ### 1. Backend

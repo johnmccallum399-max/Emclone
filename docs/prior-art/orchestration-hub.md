@@ -106,3 +106,21 @@ Google subscription.
 
 **Decision.** Local, single-user, off by default (`HUB_ENABLE_CLI_AGENTS`).
 Not for hosting or sharing. Hosted use would need API keys.
+
+## Packaging for a personal computer or phone (2026-10-26)
+
+Not researched against current docs; from general knowledge, so treat every row
+as unverified until checked. No installer has been built.
+
+| Option | What it gives | Catch |
+| --- | --- | --- |
+| `scripts/local.mjs` (built, tested on Linux) | One command or double-click, first-run setup, opens the browser | Needs Node.js installed |
+| Node single-executable application | One binary | Cannot embed the native `better-sqlite3` module; it would have to ship beside the binary, or the storage layer would move to Node's built-in SQLite |
+| Electron plus electron-builder | A normal installer per OS, bundles Node | Large (about 100 MB or more); native module must be rebuilt for Electron; must build on each OS (CI matrix); Windows and macOS installers may show unsigned-app warnings |
+| Tauri | Smaller installer | Still needs a Node sidecar for this backend, so little gained |
+| Android app | Remote control from the phone | Phones cannot run the vendor CLIs, so it can only talk to the Hub on the computer. The existing LCDR app would need new Hub screens in Kotlin |
+| Installable web app (PWA) | Already built into the frontend | Installing needs HTTPS; plain LAN HTTP gives only a bookmark. Tailscale can provide HTTPS |
+
+**Decision.** Ship the launcher now. Build installers or Hub screens in the
+Android app only if the launcher proves too much friction; both are real work
+and the first needs the user's operating system.

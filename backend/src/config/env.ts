@@ -4,6 +4,11 @@ import { z } from "zod";
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
+  // Interface to bind. Hosted deployments need 0.0.0.0; the local launcher sets 127.0.0.1.
+  HOST: z.string().default("0.0.0.0"),
+  // Optional path to a built frontend (frontend/dist). When set, the backend serves it,
+  // so the whole app runs from one local port.
+  FRONTEND_DIST: z.string().optional(),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
 
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),

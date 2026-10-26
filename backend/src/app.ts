@@ -1,4 +1,6 @@
 import cors from "cors";
+import fs from "node:fs";
+import path from "node:path";
 import express, { type Express } from "express";
 import helmet from "helmet";
 import { pinoHttp } from "pino-http";
@@ -44,6 +46,22 @@ export function createApp(): Express {
   app.use("/api/memory", memoryRouter);
   app.use("/api/settings", settingsRouter);
   app.use("/api/voice", voiceRouter);
+
+  if (env.FRONTEND_DIST) {
+    const dist = path.resolve(env.FRONTEND_DIST);
+    const indexHtml = path.join(dist, "index.html");
+    if (fs.existsSync(indexHtml)) {
+      app.use(express.static(dist));
+      // Single-page app: any other GET that is not an API call gets the shell.
+      // Paths with a file extension are missing assets, not app routes: let them 404.
+      app.get(/^(?!\/api\/).*/, (req, res, next) => {
+        if (path.extname(req.path)) return next();
+        res.sendFile(indexHtml);
+      });
+    } else {
+      logger.warn(`FRONTEND_DIST is set but ${indexHtml} does not exist; run the frontend build first.`);
+    }
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler);
