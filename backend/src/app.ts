@@ -16,6 +16,12 @@ import { logger } from "./utils/logger.js";
 export function createApp(): Express {
   const app = express();
 
+  // Required behind any single trusted reverse proxy (Render's LB, Vercel's
+  // edge network, etc.): without it, express-rate-limit throws on the
+  // X-Forwarded-For header it sees instead of trusting it, and req.ip would
+  // otherwise reflect the proxy instead of the real client.
+  app.set("trust proxy", 1);
+
   const allowedOrigins = env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
   // A literal "*" entry in the cors `origin` array only matches a request
   // with an `Origin: *` header, which browsers never send — so it would
