@@ -19,7 +19,11 @@ const envSchema = z.object({
   OPENAI_REALTIME_MODEL: z.string().default("gpt-realtime"),
 
   DATABASE_URL: z.string().optional(),
-  SQLITE_PATH: z.string().default("./data/app.db"),
+  // Vercel's filesystem is read-only except /tmp (and /tmp isn't persisted
+  // across invocations or deployments). Default there so a deploy without
+  // DATABASE_URL yet boots instead of crashing with EROFS; set DATABASE_URL
+  // for real persistence.
+  SQLITE_PATH: z.string().default(() => (process.env.VERCEL ? "/tmp/app.db" : "./data/app.db")),
 
   TAVILY_API_KEY: z.string().optional(),
   PLACEHOLDER_API_URL: z.string().optional(),
