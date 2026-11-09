@@ -57,7 +57,7 @@ export type ChatStreamEvent =
 
 // ---- Orchestration hub ------------------------------------------------------
 
-export type HubProvider = "openai" | "anthropic" | "google" | "openai_compatible";
+export type HubProvider = "openai" | "anthropic" | "google" | "openai_compatible" | "cli";
 
 /** A configured LLM account/persona. The API key never reaches the browser. */
 export interface HubAgent {

@@ -88,6 +88,68 @@ conversation, web access, tool calling, and persistent memory.
 
 ---
 
+## Run it on your computer (one command)
+
+Needs [Node.js 20+](https://nodejs.org). Then, from the repo folder:
+
+| System | Do this |
+| --- | --- |
+| Windows | double-click `start-hub.bat` (or run it in a terminal) |
+| macOS | double-click `start-hub.command` (first time: right-click, Open) |
+| Linux | `./start-hub.sh` |
+| Any | `node scripts/local.mjs` |
+
+The first run installs dependencies, builds the app, creates `backend/.env` with
+a generated secret and password, starts everything on `http://localhost:4000`
+and opens your browser. The login is printed once and saved in `backend/.env`.
+Later runs start in a few seconds. Add `--rebuild` after pulling new code.
+
+It listens only on your own computer by default. `--lan` also listens on your
+network so a phone on the same Wi-Fi can open it; anyone on that network could
+then reach the login page, so use a strong password and only on a network you
+trust. The CLI agents (see Orchestration Hub) are switched on by this launcher
+because it is local-only; the hosted deployment leaves them off.
+
+Chat and voice still need a real `OPENAI_API_KEY` in `backend/.env`; the
+launcher writes a placeholder because the Hub does not use it.
+
+### Download a ready-made bundle (no Node.js needed)
+
+Every push that touches the app runs the **Hub tests and bundles** GitHub Actions
+workflow. Open the run page and download the artifact for your system, then
+unpack it anywhere:
+
+| System | Artifact | Start it |
+| --- | --- | --- |
+| Windows 10 | `ai-hub-windows` (a zip) | double-click `start-hub.bat`. Windows may say "Windows protected your PC" because the files are not code-signed: choose More info, then Run anyway. |
+| Linux (Zorin, Ubuntu) | `ai-hub-linux` (a tar.gz) | `./start-hub.sh` in a terminal; `./add-to-menu.sh` adds an applications-menu entry |
+
+The bundle carries its own copy of Node and every dependency. The workflow runs
+the tests on both systems and then starts each bundle and drives a full session
+through a stand-in CLI before it uploads, so a bundle that does not start never
+gets published. To update, unpack the new version and copy `backend/.env` and
+`backend/data` from the old one. GitHub keeps artifacts for a limited time, so
+download the one you want to keep.
+
+### Tablet or phone
+
+Subscription agents run vendor CLIs, which only exist on a computer, so the Hub
+itself stays on the computer and a tablet is a remote control for it. Two ways:
+
+- **Same Wi-Fi.** Start with `--lan` and open the address it prints in the
+  tablet's browser. Plain HTTP gives a browser bookmark, not an installed app, and
+  anyone on that network can reach the login page.
+- **Tailscale (for an installable app).** Install [Tailscale](https://tailscale.com)
+  on the computer and the tablet, sign in to the same account, make sure MagicDNS and
+  HTTPS certificates are on in the admin console, then on the computer run
+  `tailscale serve --bg 4000` (the command's syntax has changed between versions;
+  check `tailscale serve --help`). Open the `https://…ts.net` address in the tablet's
+  Chrome and choose Install app. Only your own devices can reach it, and it works only
+  while the computer is on and the Hub is running. Not tested by the author.
+
+The Android app in `android/` has no Hub screens, so for now the installed web
+app is the way to use the Hub from a tablet.
+
 ## Running locally (without Docker)
 
 ### 1. Backend
@@ -218,6 +280,7 @@ The hub lets your different LLM accounts collaborate autonomously. Open
    | Anthropic (Claude) | `claude-sonnet-4-5`, ... |
    | Google (Gemini) | `gemini-2.5-flash`, ... |
    | OpenAI-compatible | Anything speaking the OpenAI chat-completions API — Grok/xAI, Mistral, Groq, OpenRouter, DeepSeek, local Ollama, ... Requires a base URL (e.g. `https://api.x.ai/v1`). |
+   | Local CLI | Runs the Claude Code, Codex or Gemini CLI installed on this computer, using the login you already made there. See "Using your subscriptions" below. |
 
    Agent API keys are encrypted at rest (AES-256-GCM, key derived from
    `JWT_SECRET`) and are never sent to the browser. Note: rotating
@@ -239,6 +302,33 @@ The hub lets your different LLM accounts collaborate autonomously. Open
 4. **Interject & continue** — between runs you can add your own guidance to
    the transcript and press *Continue* for more rounds; agents see your notes
    as `[User]` messages.
+
+### Using your subscriptions (local only)
+
+ChatGPT, Claude and Gemini subscriptions do not include API access, so agents
+backed by them run through each vendor's own command-line tool:
+
+1. Install the CLI(s) on your computer and sign in the normal way (`claude`,
+   `codex`, `gemini`).
+2. In `backend/.env` set `HUB_ENABLE_CLI_AGENTS=true` and run the backend on that
+   same computer (not on Render or any shared host).
+3. Add an agent with provider **Local CLI** and model `claude`, `codex` or
+   `gemini`, optionally with a model name (`claude:opus`).
+
+Safeguards: only those three tools can be launched (never a user-supplied
+command), with no shell; each turn runs in an empty temporary folder; and the
+CLI is given a scrubbed environment so API-key variables are not inherited,
+because the CLIs prefer an API key over your subscription login and would
+silently bill you per token. Each turn is a fresh one-shot call, so a session of
+8 agents and 10 rounds is 80 CLI calls drawn from your subscription limits.
+
+**Not verified:** the CLI flags have not been run against signed-in CLIs, and
+Google replaced Gemini CLI with Antigravity CLI for Google One users on
+2026-06-18, so the `gemini` preset may not work for a personal subscription.
+Anthropic's terms say plan limits assume ordinary individual use and that
+developers may not route other people's requests through plan credentials. This
+feature is for your own use on your own machine; do not share or host it. See
+`docs/prior-art/orchestration-hub.md` for the sourced details.
 
 Transcripts persist in the database, so sessions can be revisited and
 continued any time. If one agent's provider errors mid-round (bad key, rate

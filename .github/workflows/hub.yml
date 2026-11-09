@@ -1,0 +1,101 @@
+name: Hub tests and bundles
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "scripts/**"
+      - "start-hub.*"
+      - ".github/workflows/hub.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "scripts/**"
+      - "start-hub.*"
+      - ".github/workflows/hub.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-latest
+          - name: windows
+            os: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Backend install, typecheck, test, build
+        working-directory: backend
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+
+      - name: Frontend install, test, build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+          npm run build
+
+      - name: Drop dev dependencies for the bundle
+        working-directory: backend
+        run: npm prune --omit=dev
+
+      - name: Assemble the portable bundle
+        run: node scripts/make-bundle.mjs bundle
+
+      # The database module is a native binary. If its prebuilt download is missing, npm
+      # compiles it on the runner against the runner's (newer) glibc, and it would then fail on
+      # older distributions. Zorin OS 17 has glibc 2.35, so fail the build above that.
+      - name: Check the Linux bundle runs on older glibc
+        if: matrix.name == 'linux'
+        run: |
+          node_file=$(find bundle -name better_sqlite3.node | head -1)
+          newest=$(objdump -T "$node_file" | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -uV | tail -1)
+          echo "better-sqlite3 needs glibc $newest"
+          [ "$(printf '%s\n2.35\n' "$newest" | sort -V | tail -1)" = "2.35" ] || { echo "needs newer than 2.35"; exit 1; }
+          node_newest=$(objdump -T bundle/ai-hub-linux/runtime/node | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -uV | tail -1)
+          echo "bundled node needs glibc $node_newest"
+          [ "$(printf '%s\n2.35\n' "$node_newest" | sort -V | tail -1)" = "2.35" ] || { echo "needs newer than 2.35"; exit 1; }
+
+      - name: Smoke-test the bundle end to end
+        run: node scripts/smoke-bundle.mjs bundle/ai-hub-${{ matrix.name }}
+
+      - name: Archive (Linux)
+        if: matrix.name == 'linux'
+        run: tar -czf ai-hub-linux.tar.gz -C bundle ai-hub-linux
+
+      - name: Archive (Windows)
+        if: matrix.name == 'windows'
+        shell: pwsh
+        run: Compress-Archive -Path bundle/ai-hub-windows -DestinationPath ai-hub-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-hub-${{ matrix.name }}
+          path: ai-hub-${{ matrix.name }}.*
+          if-no-files-found: error

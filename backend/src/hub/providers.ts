@@ -1,5 +1,6 @@
 import type { HubAgent, HubProvider } from "../db/types.js";
 import { openSecret } from "../utils/secretBox.js";
+import { completeWithCli } from "./cliRunner.js";
 
 /**
  * Thin multi-provider completion client for the orchestration hub.
@@ -26,6 +27,7 @@ export const PROVIDER_LABELS: Record<HubProvider, string> = {
   anthropic: "Anthropic (Claude)",
   google: "Google (Gemini)",
   openai_compatible: "OpenAI-compatible (Grok, Mistral, Groq, OpenRouter, Ollama, ...)",
+  cli: "Local CLI (uses your own subscription login)",
 };
 
 async function readErrorSnippet(response: Response): Promise<string> {
@@ -115,6 +117,8 @@ async function completeGoogle(agent: HubAgent, apiKey: string, turn: ProviderTur
 
 /** Runs one completion turn against the agent's configured provider. */
 export async function completeChat(agent: HubAgent, turn: ProviderTurn): Promise<string> {
+  if (agent.provider === "cli") return completeWithCli(agent.model, turn);
+
   const apiKey = openSecret(agent.apiKeySealed);
 
   switch (agent.provider) {

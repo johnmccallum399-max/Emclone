@@ -57,9 +57,11 @@ export interface NewMessageInput {
 /**
  * Where an agent's completions come from. `openai_compatible` covers any
  * service exposing the OpenAI chat-completions API shape (Grok/xAI, Mistral,
- * Groq, OpenRouter, DeepSeek, Ollama, ...) via a custom base URL.
+ * Groq, OpenRouter, DeepSeek, Ollama, ...) via a custom base URL. `cli` runs a
+ * locally installed vendor CLI signed in with the user's own subscription; its
+ * `model` holds the tool name (see hub/cliRunner.ts) and no API key is used.
  */
-export type HubProvider = "openai" | "anthropic" | "google" | "openai_compatible";
+export type HubProvider = "openai" | "anthropic" | "google" | "openai_compatible" | "cli";
 
 export interface HubAgent {
   id: number;

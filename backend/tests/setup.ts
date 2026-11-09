@@ -8,3 +8,4 @@ process.env.APP_PASSWORD = "testpass";
 process.env.CORS_ORIGIN = "http://localhost:5173";
 process.env.LOG_LEVEL = "silent";
 process.env.RATE_LIMIT_MAX = "1000";
+process.env.HUB_ENABLE_CLI_AGENTS = "true";

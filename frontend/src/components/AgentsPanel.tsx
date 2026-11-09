@@ -7,6 +7,8 @@ export const PROVIDER_OPTIONS: {
   label: string;
   placeholderModel: string;
   needsBaseUrl: boolean;
+  /** CLI agents use the CLI's own login, so there is no key or base URL to enter. */
+  usesCli?: boolean;
 }[] = [
   { value: "openai", label: "OpenAI", placeholderModel: "gpt-4o-mini", needsBaseUrl: false },
   { value: "anthropic", label: "Anthropic (Claude)", placeholderModel: "claude-sonnet-4-5", needsBaseUrl: false },
@@ -16,6 +18,13 @@ export const PROVIDER_OPTIONS: {
     label: "OpenAI-compatible (Grok, Mistral, Groq, OpenRouter, Ollama, ...)",
     placeholderModel: "e.g. grok-3-mini",
     needsBaseUrl: true,
+  },
+  {
+    value: "cli",
+    label: "Local CLI (uses your own subscription login)",
+    placeholderModel: "claude, codex or gemini (optionally claude:opus)",
+    needsBaseUrl: false,
+    usesCli: true,
   },
 ];
 
@@ -78,7 +87,7 @@ export function AgentsPanel({ agents, onChanged, onClose }: AgentsPanelProps) {
     event.preventDefault();
     setError(null);
 
-    const baseUrl = form.baseUrl.trim() || null;
+    const baseUrl = providerOption.usesCli ? null : form.baseUrl.trim() || null;
     if (providerOption.needsBaseUrl && !baseUrl) {
       setError("A base URL is required for OpenAI-compatible providers.");
       return;
@@ -91,7 +100,7 @@ export function AgentsPanel({ agents, onChanged, onClose }: AgentsPanelProps) {
           name: form.name.trim(),
           provider: form.provider,
           model: form.model.trim(),
-          apiKey: form.apiKey,
+          ...(providerOption.usesCli ? {} : { apiKey: form.apiKey }),
           baseUrl,
           systemPrompt: form.systemPrompt,
         });
@@ -101,7 +110,7 @@ export function AgentsPanel({ agents, onChanged, onClose }: AgentsPanelProps) {
           provider: form.provider,
           model: form.model.trim(),
           // Leave the stored key untouched unless a new one was entered.
-          ...(form.apiKey ? { apiKey: form.apiKey } : {}),
+          ...(form.apiKey && !providerOption.usesCli ? { apiKey: form.apiKey } : {}),
           baseUrl,
           systemPrompt: form.systemPrompt,
         });
@@ -211,27 +220,37 @@ export function AgentsPanel({ agents, onChanged, onClose }: AgentsPanelProps) {
               onChange={(e) => setForm({ ...form, model: e.target.value })}
             />
 
-            <label htmlFor="agent-key">API key {editingId !== "new" && "(leave blank to keep current)"}</label>
-            <input
-              id="agent-key"
-              type="password"
-              autoComplete="off"
-              required={editingId === "new"}
-              placeholder={editingId === "new" ? "sk-..." : "••••••••"}
-              value={form.apiKey}
-              onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
-            />
+            {providerOption.usesCli ? (
+              <p className="muted">
+                Runs the CLI installed on this computer, using the login you already made there. Needs{" "}
+                <code>HUB_ENABLE_CLI_AGENTS=true</code> in the backend environment, and should only be used on a machine
+                you control. Check your plan's terms before heavy use.
+              </p>
+            ) : (
+              <>
+                <label htmlFor="agent-key">API key {editingId !== "new" && "(leave blank to keep current)"}</label>
+                <input
+                  id="agent-key"
+                  type="password"
+                  autoComplete="off"
+                  required={editingId === "new"}
+                  placeholder={editingId === "new" ? "sk-..." : "••••••••"}
+                  value={form.apiKey}
+                  onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
+                />
 
-            <label htmlFor="agent-base-url">
-              Base URL {providerOption.needsBaseUrl ? "(required)" : "(optional override)"}
-            </label>
-            <input
-              id="agent-base-url"
-              type="url"
-              placeholder="https://api.x.ai/v1"
-              value={form.baseUrl}
-              onChange={(e) => setForm({ ...form, baseUrl: e.target.value })}
-            />
+                <label htmlFor="agent-base-url">
+                  Base URL {providerOption.needsBaseUrl ? "(required)" : "(optional override)"}
+                </label>
+                <input
+                  id="agent-base-url"
+                  type="url"
+                  placeholder="https://api.x.ai/v1"
+                  value={form.baseUrl}
+                  onChange={(e) => setForm({ ...form, baseUrl: e.target.value })}
+                />
+              </>
+            )}
 
             <label htmlFor="agent-prompt">Persona / system prompt (optional)</label>
             <textarea

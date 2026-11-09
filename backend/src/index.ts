@@ -9,8 +9,8 @@ async function main(): Promise<void> {
   await ensureSeedUser();
 
   const app = createApp();
-  app.listen(env.PORT, () => {
-    logger.info(`Personal AI Assistant backend listening on port ${env.PORT} (${env.NODE_ENV})`);
+  app.listen(env.PORT, env.HOST, () => {
+    logger.info(`Personal AI Assistant backend listening on ${env.HOST}:${env.PORT} (${env.NODE_ENV})`);
   });
 }
 
